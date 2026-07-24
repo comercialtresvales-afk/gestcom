@@ -2073,6 +2073,8 @@ tr:last-child td{border-bottom:none;}
         <div><div class="section-title">Mix de Produtos por Cliente</div><div class="section-sub">Defina portfólio, preços e descontos por cliente × indústria</div></div>
         <div class="export-btns">
           <button class="btn btn-outline btn-sm" onclick="openModal('modal-add-produto')">+ Adicionar Produto</button>
+          <button class="btn btn-outline btn-sm" onclick="mixListarSemDesconto()" title="Lista os mixes que não têm nenhum desconto — candidatos a exclusão">🔍 Mixes sem desconto</button>
+          <button class="btn btn-outline btn-sm" style="color:#c0392b;border-color:#e8b4ae" onclick="mixExcluirAtual()" title="Exclui o mix do cliente/rede selecionado. Os produtos continuam cadastrados no módulo Produtos.">🗑️ Excluir mix</button>
           <button class="btn btn-primary btn-sm" onclick="popularSelectsDinamicos();atualizarSelectsMixNovo();openModal('modal-mix-novo')">+ Novo Mix</button>
         </div>
       </div>
@@ -4397,6 +4399,57 @@ function _migrarConfigLembretes() {
   if(!Array.isArray(configSistema.lembReuniaoDias)) configSistema.lembReuniaoDias = [1,2,3,4,5];
 }
 
+/* ── v28 — COMPRESSAO DO MIX ─────────────────────────────────────────
+   mixProdutos guardava 'desc' e 'ind' repetidos do PRODUTOS_CAT em
+   ~13k registros, estourando a cota do localStorage (5MB). Agora esses
+   campos so sao gravados quando DIVERGEM do catalogo (edicao manual);
+   nos demais casos sao reconstruidos na leitura a partir do catalogo.
+   Nada e perdido: edicoes manuais de desc/ind continuam preservadas. */
+function _mixComprimir(arr) {
+  if(!Array.isArray(arr)) return [];
+  // Se o catalogo ainda nao carregou, desc/ind nao podem ser reconstruidos
+  // na leitura — nesse caso preservamos os dois campos (compressao parcial).
+  var _catOk = PRODUTOS_CAT && Object.keys(PRODUTOS_CAT).length > 0;
+  return arr.map(function(m){
+    var o = {};
+    for(var k in m) if(Object.prototype.hasOwnProperty.call(m,k)) o[k] = m[k];
+    var p = _catOk ? PRODUTOS_CAT[m.cod] : null;
+    // 1) campos identicos ao catalogo: reconstruidos na leitura
+    if(p) {
+      if(p.desc === m.desc) delete o.desc;
+      if(p.ind  === m.ind)  delete o.ind;
+    }
+    // 2) campos vazios / em valor padrao: so o NOME da chave repetido
+    //    13k vezes custava ~1.2MB. Restaurados na leitura.
+    if(o.clienteEspecifico === '' || o.clienteEspecifico == null) delete o.clienteEspecifico;
+    if(o.rede === '' || o.rede == null) delete o.rede;
+    if(o.obs  === '' || o.obs  == null) delete o.obs;
+    if(o.ultima === '—' || o.ultima === '' || o.ultima == null) delete o.ultima;
+    if(o.ativo === true) delete o.ativo;          // padrao: ativo
+    if(o.desc_pct === 0 || o.desc_pct == null) delete o.desc_pct;
+    if(o.curva === 'B') delete o.curva;           // padrao usado na criacao
+    return o;
+  });
+}
+function _mixExpandir(arr) {
+  if(!Array.isArray(arr)) return [];
+  return arr.map(function(m){
+    var p = PRODUTOS_CAT && PRODUTOS_CAT[m.cod];
+    if(p) {
+      if(typeof m.desc === 'undefined') m.desc = p.desc;
+      if(typeof m.ind  === 'undefined') m.ind  = p.ind;
+    }
+    if(typeof m.clienteEspecifico === 'undefined') m.clienteEspecifico = '';
+    if(typeof m.rede   === 'undefined') m.rede   = '';
+    if(typeof m.obs    === 'undefined') m.obs    = '';
+    if(typeof m.ultima === 'undefined') m.ultima = '—';
+    if(typeof m.ativo  === 'undefined') m.ativo  = true;
+    if(typeof m.desc_pct === 'undefined') m.desc_pct = 0;
+    if(typeof m.curva  === 'undefined') m.curva  = 'B';
+    return m;
+  });
+}
+
 function _salvarLocal() {
   try {
     // FIX v27 — o modulo Financeiro e declarado num bloco <script> POSTERIOR a
@@ -4415,7 +4468,7 @@ function _salvarLocal() {
     const payload = JSON.stringify({
       pedidos, orcamentos, orcamentosExcluidos, clientes, industrias, redes, comissoes_data,
       logisticaData, sellOutData, metasData, regrasComerciais, tratativas,
-      PRODUTOS_CAT, mixProdutos, bonificacoesData, usuarios, userPerms,
+      PRODUTOS_CAT, mixProdutos: _mixComprimir(mixProdutos), bonificacoesData, usuarios, userPerms,
       configSistema, auditLog, saldoUsosData: (window.saldoUsosData||[]),
       ctrlSaldosData, ctrlSaldosHistorico,
       tarefasData, atasData, crmData, setoresCustom, contaCorrenteData, ccContas, ccContasCadastradas,
@@ -4425,8 +4478,14 @@ function _salvarLocal() {
     });
     localStorage.setItem('gestcom_dados', payload);
   } catch(e) {
-    if(e.name === 'QuotaExceededError')
+    if(e.name === 'QuotaExceededError') {
       console.warn('[GestCom] ⚠ localStorage cheio — exporte os dados e considere limpar registros antigos.');
+      // v28 — antes falhava em silencio: o usuario so descobria ao perder tudo.
+      try {
+        var _m = '⚠️ ARMAZENAMENTO CHEIO — os dados NÃO foram salvos neste navegador! Vá em Sincronização e envie para a nuvem.';
+        if(typeof toast === 'function') toast(_m); else console.error(_m);
+      } catch(_) {}
+    }
     else
       console.warn('[GestCom] Erro localStorage:', e.message);
   }
@@ -4453,7 +4512,7 @@ function _carregarLocal() {
     if(Array.isArray(d.metasData))        metasData        = d.metasData;
     if(Array.isArray(d.regrasComerciais)) regrasComerciais = d.regrasComerciais;
     if(Array.isArray(d.tratativas))       tratativas       = d.tratativas.map(t=>({notas:[],...t}));
-    if(Array.isArray(d.mixProdutos))      mixProdutos      = d.mixProdutos;
+    if(Array.isArray(d.mixProdutos))      mixProdutos      = d.mixProdutos; // expandido apos PRODUTOS_CAT (v28)
     if(Array.isArray(d.bonificacoesData)) bonificacoesData = d.bonificacoesData;
     if(Array.isArray(d.usuarios))         usuarios         = d.usuarios;
     // ─── Módulos novos ───
@@ -4478,6 +4537,8 @@ function _carregarLocal() {
     if(d.userAcoes && typeof d.userAcoes==='object') userAcoes = d.userAcoes;
     // FIX: _mergeLimpo em vez de Object.assign — chaves excluídas não voltam
     if(d.PRODUTOS_CAT  && typeof d.PRODUTOS_CAT  ==='object') _mergeLimpo(PRODUTOS_CAT, d.PRODUTOS_CAT);
+    // v28 — catalogo ja carregado: reconstroi desc/ind omitidos no mix
+    mixProdutos = _mixExpandir(mixProdutos);
     if(d.userPerms     && typeof d.userPerms     ==='object') _mergeLimpo(userPerms,     d.userPerms);
     // configSistema é objeto de configuração (não coleção de registros) — Object.assign é correto aqui
     if(d.configSistema && typeof d.configSistema ==='object') { Object.assign(configSistema,   d.configSistema); _migrarConfigLembretes(); }
@@ -8343,6 +8404,79 @@ function selectCliente(nomeCliente, btn) {
   el('mix-stat-industrias').textContent = indsSet.size;
   el('mix-stat-desconto').textContent = descs.length>0 ? (descs.reduce((s,v)=>s+v,0)/descs.length).toFixed(1)+'%' : '0%';
   renderMix();
+}
+
+/* ── v28 — EXCLUSAO DE MIX ────────────────────────────────────────────
+   Remove os registros de mixProdutos de um cliente/rede. NAO mexe em
+   PRODUTOS_CAT: os produtos continuam cadastrados no modulo Produtos.
+   Serve para clientes que compram tudo no preco de tabela e portanto
+   nao precisam de mix (cada registro so dizia "sem desconto"). */
+function _mixIndicesDe(alvo) {
+  // Mesmo criterio de renderMix(): rede (prefixo 🔗) ou cliente especifico
+  var isRede = alvo && alvo.indexOf('🔗 ') === 0;
+  var nomeRede = isRede ? alvo.replace('🔗 ','') : '';
+  var filiais = isRede ? clientes.filter(function(c){return c.rede===nomeRede;}).map(function(c){return c.nome;}) : [];
+  var cli = !isRede ? clientes.find(function(c){return c.nome===alvo;}) : null;
+  var redeDoCli = cli ? cli.rede : '';
+  var idx = [];
+  mixProdutos.forEach(function(p,i){
+    if(isRede) {
+      if(p.rede === nomeRede || filiais.indexOf(p.clienteEspecifico) >= 0) idx.push(i);
+    } else {
+      // So exclui o que e do PROPRIO cliente. Registros herdados da rede
+      // pertencem a rede e sao excluidos ao excluir o mix da rede.
+      if(p.clienteEspecifico === alvo) idx.push(i);
+    }
+  });
+  return idx;
+}
+
+function mixExcluirAtual() {
+  var alvo = clienteAtual;
+  if(!alvo || alvo === 'coelho') { alert('Selecione um cliente ou rede primeiro.'); return; }
+  var idx = _mixIndicesDe(alvo);
+  if(!idx.length) { alert('Nenhum produto no mix de "' + alvo + '".'); return; }
+
+  var comDesc = idx.filter(function(i){ return (mixProdutos[i].desc_pct||0) > 0; }).length;
+  var msg = 'Excluir o MIX de "' + alvo + '"?\n\n' +
+            '• ' + idx.length + ' registro(s) do mix serao removidos\n' +
+            (comDesc ? '• ATENCAO: ' + comDesc + ' produto(s) TEM DESCONTO configurado!\n' : '• Nenhum produto tem desconto (usam preco de tabela)\n') +
+            '\nOs produtos NAO serao excluidos do modulo Produtos.\n' +
+            'Esta acao nao pode ser desfeita.';
+  if(!confirm(msg)) return;
+  if(comDesc && !confirm('Confirma mesmo? ' + comDesc + ' desconto(s) negociado(s) serao perdidos.')) return;
+
+  // Remove de tras pra frente para nao bagunçar os indices
+  idx.sort(function(a,b){return b-a;}).forEach(function(i){ mixProdutos.splice(i,1); });
+
+  addAudit(usuarioLogado?.login||'admin', 'Mix EXCLUIDO: ' + alvo + ' (' + idx.length + ' registros)', '🗑️');
+  try { _salvarLocal(); } catch(e) {}
+  renderMix();
+  syncAutoSaveHook();
+  toast('Mix de "' + alvo + '" excluido — ' + idx.length + ' registro(s). Produtos preservados.');
+}
+
+/* Lista os mixes SEM nenhum desconto — candidatos a exclusao. */
+function mixListarSemDesconto() {
+  var g = {};
+  mixProdutos.forEach(function(x){
+    var k = x.clienteEspecifico || (x.rede ? '🔗 ' + x.rede : '');
+    if(!k) return;
+    (g[k] = g[k] || []).push(x);
+  });
+  var vazios = Object.keys(g).filter(function(k){
+    return g[k].every(function(x){ return !x.desc_pct || x.desc_pct === 0; });
+  });
+  if(!vazios.length) { alert('Nenhum mix sem desconto encontrado.'); return; }
+
+  var tot = vazios.reduce(function(a,k){ return a + g[k].length; }, 0);
+  var txt = 'MIXES SEM NENHUM DESCONTO (' + vazios.length + '):\n\n';
+  vazios.sort(function(a,b){ return g[b].length - g[a].length; })
+        .forEach(function(k){ txt += '  • ' + k + ' — ' + g[k].length + ' produtos\n'; });
+  txt += '\nTotal: ' + tot + ' registros.\n\n' +
+         'Para excluir: selecione o cliente/rede na tela do Mix\n' +
+         'e clique em "Excluir mix". Um de cada vez, para voce conferir.';
+  alert(txt);
 }
 
 function renderMix() {
@@ -14308,6 +14442,8 @@ function aplicarDadosDaNuvem(dados, silencioso=false, forcado=false) {
   if(dados.userAcoes && typeof dados.userAcoes==='object') userAcoes = dados.userAcoes;
   // FIX: _mergeLimpo em vez de Object.assign — chaves excluídas não voltam da nuvem
   if(dados.PRODUTOS_CAT && typeof dados.PRODUTOS_CAT==="object") _mergeLimpo(PRODUTOS_CAT, dados.PRODUTOS_CAT);
+  // v28 — se o mix veio comprimido de outra maquina, reconstroi desc/ind
+  mixProdutos = _mixExpandir(mixProdutos);
   if(dados.userPerms && typeof dados.userPerms==="object") _mergeLimpo(userPerms, dados.userPerms);
   // configSistema é objeto de configuração (não coleção) — Object.assign é correto aqui
   if(dados.configSistema && typeof dados.configSistema==="object") { Object.assign(configSistema, dados.configSistema); _migrarConfigLembretes(); }
