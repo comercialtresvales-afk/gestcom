@@ -1283,10 +1283,6 @@ async function salvarRegistro(){
     DADOS[chave].push(obj);
   }
 
-  // Marca timestamp e autor (igual ao web)
-  DADOS._ts = Date.now();
-  DADOS._usuario = usuarioLogado?.login || 'app';
-
   // Grava
   saveBtn.disabled = true;
   const oldTxt = saveBtn.textContent;
@@ -1294,12 +1290,58 @@ async function salvarRegistro(){
 
   try{
     if(RTDB){
+      /* ── v2 — PROTECAO CONTRA SOBRESCRITA ──────────────────────────
+         O PUT substitui o no inteiro. Se o DADOS em memoria estiver
+         velho (alguem salvou pela web depois que o app baixou), o
+         envio apagaria o trabalho dos outros. Aqui relemos a nuvem
+         imediatamente antes de gravar; se mudou, rebaixamos a base
+         fresca e REAPLICAMOS so esta alteracao em cima dela. */
+      let tsLocal = DADOS._ts || 0;
+      let tsRemoto = null;
+      try{
+        const rt = await fetch(rtdbUrl('gestcom/dados/_ts'), {cache:'no-store'});
+        if(rt.ok) tsRemoto = await rt.json();
+      }catch(e){ /* sem rede: segue e deixa o PUT falhar naturalmente */ }
+
+      if(tsRemoto && tsRemoto > tsLocal){
+        // Nuvem mais nova — rebaixa tudo e reaplica a edicao
+        const res0 = await fetch(rtdbUrl('gestcom/dados'), {cache:'no-store'});
+        if(!res0.ok) throw new Error('HTTP '+res0.status);
+        const fresco = await res0.json();
+        if(!fresco) throw new Error('Nuvem vazia');
+
+        if(!Array.isArray(fresco[chave])) fresco[chave] = [];
+        if(editId){
+          const i2 = fresco[chave].findIndex(r=>String(r.id)===String(editId));
+          if(i2 >= 0){
+            fresco[chave][i2] = { ...fresco[chave][i2], ...obj };
+          } else {
+            // registro foi apagado por outro usuario enquanto editava
+            saveBtn.disabled=false; saveBtn.textContent=oldTxt;
+            toast('Este registro foi excluído por outro usuário. Nada foi salvo.','err');
+            return;
+          }
+        } else {
+          fresco[chave].push(obj);   // obj ja recebeu id/criadorPor acima
+        }
+        DADOS = fresco;
+        USERPERMS = DADOS.userPerms || USERPERMS;
+      }
+
+      // Marca timestamp e autor (igual ao web)
+      DADOS._ts = Date.now();
+      DADOS._usuario = usuarioLogado?.login || 'app';
+
       const res = await fetch(rtdbUrl('gestcom/dados'), {
         method:'PUT',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify(DADOS)
       });
       if(!res.ok) throw new Error('HTTP '+res.status);
+    } else {
+      // Sem RTDB: marca timestamp local mesmo assim
+      DADOS._ts = Date.now();
+      DADOS._usuario = usuarioLogado?.login || 'app';
     }
     // atualiza cache local também
     try{ localStorage.setItem('gestcom_cache', JSON.stringify(DADOS)); }catch(e){}
