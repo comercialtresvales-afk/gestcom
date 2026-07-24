@@ -12145,7 +12145,10 @@ document.addEventListener('click', e => {
 function addAudit(user, acao, icon='ℹ️') {
   const time = new Date().toLocaleString('pt-BR').substring(0,14);
   auditLog.unshift({user,acao,time,icon});
-  if(auditLog.length>50) auditLog.pop();
+  // v28 — 50 registros cobriam poucos dias numa equipe de 4 pessoas: uma
+  // limpeza em lote consumia o log inteiro e apagava o historico util.
+  // 500 custa ~60KB e da semanas de rastreabilidade.
+  if(auditLog.length>500) auditLog.pop();
 }
 
 /* ══════════════════════════
