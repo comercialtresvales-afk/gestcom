@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -678,6 +679,8 @@ tr:last-child td{border-bottom:none;}
 .crm-icon-wa:hover{background:#25D366;color:#fff;}
 .crm-icon-mail{border-color:#1a5fa8;color:#1a5fa8;}
 .crm-icon-mail:hover{background:#1a5fa8;color:#fff;}
+.crm-icon-mais{border-color:#bbb;color:#777;font-size:15px;font-weight:700;line-height:1;}
+.crm-icon-mais:hover{background:#555;border-color:#555;color:#fff;}
 .crm-icon-tel{border-color:#888;color:#666;}
 .crm-icon-tel:hover{background:#666;color:#fff;}
 .crm-icon-off{opacity:.22;border-color:#ccc;color:#ccc;cursor:default;}
@@ -2486,6 +2489,17 @@ tr:last-child td{border-bottom:none;}
           <div class="form-group"><label>E-mail do Administrador</label>
             <input type="email" id="cfg-email-admin" placeholder="admin@empresa.com">
           </div>
+          <div class="form-group full"><label>✉️ Endereço do Webmail (Professional Mail)</label>
+            <input id="cfg-webmail-url" placeholder="https://secureserver.titan.email/mail/">
+            <div style="font-size:11px;color:#888;margin-top:3px">Usado ao clicar num e-mail no CRM. Deixe vazio para voltar ao padrão (Titan).</div>
+          </div>
+          <div class="form-group full"><label>🔗 URL de composição do webmail (opcional, avançado)</label>
+            <input id="cfg-webmail-compor" placeholder="https://secureserver.titan.email/mail/?mailto=%s">
+            <div style="font-size:11px;color:#888;margin-top:3px">
+              Só preencha se quiser abrir o compositor <strong>sem</strong> depender do app de e-mail padrão. Precisa conter <code>%s</code>.<br>
+              Para descobrir a URL certa: ative o Titan como app padrão, depois abra <code>chrome://settings/handlers</code> e copie o endereço que aparece em “E-mail”.
+            </div>
+          </div>
           <div class="form-group full" style="margin-top:10px"><label>⚙️ E-mail Automático (EmailJS)</label>
             <div class="alert alert-info" style="margin-bottom:10px">ℹ️ Para o <strong>resumo diário de tarefas</strong> e os <strong>convites/lembretes de reunião</strong> chegarem por e-mail, configure o <a href="https://www.emailjs.com" target="_blank">EmailJS</a>. Gratuito até 200 e-mails/mês.</div>
           <div class="alert alert-warning" style="margin-bottom:10px;font-size:11.5px">
@@ -4085,11 +4099,21 @@ let usuarioLogado = null;
 /* ══════════════════════════
    CONFIG DO SISTEMA (estado persistido na sessão)
 ══════════════════════════ */
+/* ══ WEBMAIL CORPORATIVO ══════════════════════════════════════════════
+   Endereço do Professional Mail. Antes era o webmail da GoDaddy
+   (OX App Suite); agora é o Titan. Pode ser trocado em
+   Configurações → Parâmetros Gerais, sem mexer no código. */
+var WEBMAIL_PADRAO = 'https://secureserver.titan.email/mail/';
+
 let configSistema = {
   layoutPdf:    'padrao',
   moeda:        'BRL',
   diasAlerta:   5,
   emailAdmin:   '',
+  /* Endereço do webmail corporativo (Professional Mail).
+     Mudou de GoDaddy/OX App Suite para Titan. Editável em Configurações. */
+  webmailUrl:   WEBMAIL_PADRAO,
+  webmailComporUrl: '',   // opcional: URL de composição com %s
   /* ─── Lembretes: configuração do usuário ───
      Tarefas e Reuniões são independentes. Dias: 0=Dom ... 6=Sáb. */
   lembTarefasAtivo:   true,
@@ -4396,6 +4420,10 @@ function _migrarConfigLembretes() {
   });
   if(!Array.isArray(configSistema.lembTarefasDias)) configSistema.lembTarefasDias = [1,2,3,4,5];
   if(!Array.isArray(configSistema.lembReuniaoDias)) configSistema.lembReuniaoDias = [1,2,3,4,5];
+  /* Webmail: quem tinha o endereço antigo (GoDaddy / myprofessionalmail) passa para o Titan */
+  if(!configSistema.webmailUrl || /myprofessionalmail|godaddy/i.test(configSistema.webmailUrl)) {
+    configSistema.webmailUrl = WEBMAIL_PADRAO;
+  }
 }
 
 /* ── v28 — COMPRESSAO DO MIX ─────────────────────────────────────────
@@ -4451,27 +4479,13 @@ function _mixExpandir(arr) {
 
 function _salvarLocal() {
   try {
-    // FIX v27 — o modulo Financeiro e declarado num bloco <script> POSTERIOR a
-    // esta funcao. Se _salvarLocal() rodar antes disso, finCRData/CP/CB ainda
-    // sao undefined e o JSON.stringify gravava vazio POR CIMA dos lancamentos
-    // ja salvos. Aqui so gravamos o financeiro quando ele realmente existe;
-    // caso contrario preservamos o que ja estava em 'gestcom_dados'.
-    var _fin = {};
-    var _prev = {};
-    try { _prev = JSON.parse(localStorage.getItem('gestcom_dados') || '{}') || {}; } catch(_) { _prev = {}; }
-    _fin.finCRData = (typeof finCRData !== 'undefined' && Array.isArray(finCRData)) ? finCRData : (_prev.finCRData || []);
-    _fin.finCPData = (typeof finCPData !== 'undefined' && Array.isArray(finCPData)) ? finCPData : (_prev.finCPData || []);
-    _fin.finCBData = (typeof finCBData !== 'undefined' && Array.isArray(finCBData)) ? finCBData : (_prev.finCBData || []);
-    _fin.cbTipos   = (typeof cbTipos   !== 'undefined' && Array.isArray(cbTipos))   ? cbTipos   : (_prev.cbTipos   || []);
-
     const payload = JSON.stringify({
       pedidos, orcamentos, orcamentosExcluidos, clientes, industrias, redes, comissoes_data,
       logisticaData, sellOutData, metasData, regrasComerciais, tratativas,
       PRODUTOS_CAT, mixProdutos: _mixComprimir(mixProdutos), bonificacoesData, usuarios, userPerms,
       configSistema, auditLog, saldoUsosData: (window.saldoUsosData||[]),
       ctrlSaldosData, ctrlSaldosHistorico,
-      tarefasData, atasData, crmData, setoresCustom, contaCorrenteData, ccContas, ccContasCadastradas,
-      finCRData: _fin.finCRData, finCPData: _fin.finCPData, finCBData: _fin.finCBData, cbTipos: _fin.cbTipos,
+      tarefasData, atasData, setoresCustom, contaCorrenteData, ccContas, ccContasCadastradas,
       modulosConfig, modulosCustom, userAcoes,
       _ts: Date.now()
     });
@@ -4517,7 +4531,6 @@ function _carregarLocal() {
     // ─── Módulos novos ───
     if(Array.isArray(d.tarefasData))       tarefasData       = d.tarefasData;
     if(Array.isArray(d.atasData))          atasData          = d.atasData;
-    if(Array.isArray(d.crmData))           crmData           = d.crmData;
     if(d.setoresCustom && typeof d.setoresCustom==='object'){
       setoresCustom = {
         cliente:   Array.isArray(d.setoresCustom.cliente)   ? d.setoresCustom.cliente   : [],
@@ -4527,10 +4540,6 @@ function _carregarLocal() {
     if(Array.isArray(d.contaCorrenteData)) contaCorrenteData = d.contaCorrenteData;
     if(Array.isArray(d.ccContas))          ccContas          = d.ccContas;
     if(d.ccContasCadastradas && typeof d.ccContasCadastradas==='object') ccContasCadastradas = d.ccContasCadastradas;
-    if(Array.isArray(d.finCRData))         finCRData         = d.finCRData;
-    if(Array.isArray(d.finCPData))         finCPData         = d.finCPData;
-    if(Array.isArray(d.finCBData))         finCBData         = d.finCBData;
-    if(Array.isArray(d.cbTipos))           cbTipos           = d.cbTipos;
     if(d.modulosConfig && typeof d.modulosConfig==='object') modulosConfig = d.modulosConfig;
     if(Array.isArray(d.modulosCustom))     modulosCustom     = d.modulosCustom;
     if(d.userAcoes && typeof d.userAcoes==='object') userAcoes = d.userAcoes;
@@ -9415,48 +9424,6 @@ const IMPORT_COLS = {
     {key:'precoUnit', label:'Preço Unitário',     req:false, hint:'Se vazio, busca no catálogo'},
     {key:'total',     label:'Total Item',         req:false, hint:'Se vazio, calcula: Preço × Qtd × (1 - Desc%)'},
   ],
-  cr: [
-    {key:'cliente',      label:'Cliente/Indústria', req:true,  hint:'Quem vai pagar'},
-    {key:'valor',        label:'Valor',             req:true,  hint:'Ex: 1.500,00'},
-    {key:'dataLanc',     label:'Data Lançamento',   req:false, hint:'DD/MM/AAAA (padrão: hoje)'},
-    {key:'mesReceita',   label:'Mês Receita',       req:false, hint:'Ex: 03/2026'},
-    {key:'empresa',      label:'Empresa',           req:false, hint:'Padrão: COMERCIAL'},
-    {key:'tipo',         label:'Tipo Receita',      req:false, hint:'Ex: COMISSÃO DE VENDAS'},
-    {key:'descricao',    label:'Descrição',         req:false},
-    {key:'planoReceb',   label:'Plano Recebimento', req:false, hint:'Ex: PIX, Boleto'},
-    {key:'banco',        label:'Banco',             req:false, hint:'Padrão: NUBANK COMERCIAL'},
-    {key:'descontoFin',  label:'Desconto Fin.',     req:false, hint:'Abatimento (opcional)'},
-    {key:'juros',        label:'Juros',             req:false, hint:'Acréscimo (opcional)'},
-    {key:'vencimento',   label:'Vencimento',        req:false, hint:'DD/MM/AAAA'},
-    {key:'dataPagamento',label:'Data Recebimento',  req:false, hint:'Preencha quando recebido'},
-  ],
-  cp: [
-    {key:'fornecedor',   label:'Fornecedor/Prestador', req:true,  hint:'Quem vai receber'},
-    {key:'valor',        label:'Valor',                req:true,  hint:'Ex: 1.500,00'},
-    {key:'dataLanc',     label:'Data Lançamento',      req:false, hint:'DD/MM/AAAA (padrão: hoje)'},
-    {key:'mesDespesa',   label:'Mês Despesa',          req:false, hint:'Ex: 03/2026'},
-    {key:'empresa',      label:'Empresa',              req:false, hint:'Padrão: COMERCIAL'},
-    {key:'descricao',    label:'Descrição',            req:false},
-    {key:'classif',      label:'Classif. Financeira',  req:false, hint:'Ex: 3.1, 3.5'},
-    {key:'centroCusto',  label:'Centro de Custo',      req:false},
-    {key:'banco',        label:'Banco',                req:false, hint:'Padrão: NUBANK COMERCIAL'},
-    {key:'descJuros',    label:'Desc/Juros',           req:false},
-    {key:'vencimento',   label:'Vencimento',           req:false, hint:'DD/MM/AAAA'},
-    {key:'dataPagamento',label:'Data Pagamento',       req:false, hint:'Preencha quando pago'},
-  ],
-  cb: [
-    {key:'valor',        label:'Valor',              req:true,  hint:'Ex: 1.500,00'},
-    {key:'data',         label:'Data',               req:false, hint:'DD/MM/AAAA (padrão: hoje)'},
-    {key:'empresa',      label:'Empresa',            req:false, hint:'Padrão: COMERCIAL'},
-    {key:'tipo',         label:'Tipo Movimentação',  req:false, hint:'Ex: TRANSFERÊNCIA DE RECURSO'},
-    {key:'es',           label:'E/S',                req:false, hint:'E (entrada) ou S (saída)'},
-    {key:'descricao',    label:'Descrição',          req:false},
-    {key:'saiu',         label:'Saiu de',            req:false, hint:'Banco de origem'},
-    {key:'entrou',       label:'Entrou em',          req:false, hint:'Banco de destino'},
-    {key:'centroCusto',  label:'Centro de Custo',    req:false},
-    {key:'vencimento',   label:'Vencimento',         req:false, hint:'DD/MM/AAAA'},
-    {key:'dataQuit',     label:'Data Quitação',      req:false},
-  ],
   cc: [
     {key:'cliente',   label:'Cliente',       req:true,  hint:'Nome do cliente'},
     {key:'valor',     label:'Valor',         req:true,  hint:'Sempre positivo (ex: 1.500,00). O tipo define crédito/débito'},
@@ -9468,14 +9435,24 @@ const IMPORT_COLS = {
     {key:'mesRef',    label:'Mês Ref.',      req:false, hint:'Ex: 03/2026'},
     {key:'descricao', label:'Descrição',     req:false},
   ],
-  contatos: [
-    {key:'nome',     label:'Nome',      req:true,  hint:'Nome do contato'},
-    {key:'tipo',     label:'Tipo',      req:false, hint:'Cliente, Indústria, Fornecedor...'},
-    {key:'cargo',    label:'Cargo',     req:false, hint:'Ex: Gerente Comercial'},
-    {key:'empresa',  label:'Empresa',   req:false},
-    {key:'telefone', label:'Telefone',  req:false},
-    {key:'email',    label:'E-mail',    req:false},
-    {key:'obs',      label:'Observações',req:false},
+  crm: [
+    {key:'tipo',     label:'Tipo',        req:true,  hint:'Cliente ou Indústria'},
+    {key:'empresa',  label:'Empresa',     req:true,  hint:'Nome / razão social — repita em cada linha da mesma empresa'},
+    {key:'cnpj',     label:'CNPJ',        req:false},
+    {key:'fantasia', label:'Nome Fantasia', req:false, hint:'Indústria: use como Razão Social'},
+    {key:'segmento', label:'Segmento',    req:false, hint:'Varejo / Distribuidor / Atacado'},
+    {key:'rede',     label:'Rede / Grupo',req:false},
+    {key:'endereco', label:'Endereço',    req:false},
+    {key:'bairro',   label:'Bairro',      req:false},
+    {key:'cidade',   label:'Cidade / UF', req:false},
+    {key:'cep',      label:'CEP',         req:false},
+    {key:'prazo',    label:'Prazo Pgto',  req:false, hint:'Ex: 28D, 30/60D'},
+    {key:'pct',      label:'% Comissão',  req:false, hint:'Só para indústrias — ex: 7'},
+    {key:'setor',    label:'Setor',       req:false, hint:'Comercial, Recebimento, Compras... setor novo é criado sozinho'},
+    {key:'nome',     label:'Responsável', req:false, hint:'Nome da pessoa daquele setor'},
+    {key:'email',    label:'E-mail',      req:false, hint:'E-mail do responsável'},
+    {key:'telefone', label:'Telefone',    req:false, hint:'Celular com DDD abre o WhatsApp'},
+    {key:'obs',      label:'Observações', req:false, hint:'Observação da empresa'},
   ],
 };
 
@@ -9486,48 +9463,6 @@ const _HMI = Object.assign({},_HMB,{'nome':'nome','marca':'nome','laboratorio':'
 const _HMP = Object.assign({},_HMB,{'codigo':'cod','cod':'cod','sku':'cod','ref':'cod','referencia':'cod','codigo produto':'cod','ean':'ean','codigo de barras':'ean','barcode':'ean','gtin':'ean','descricao':'desc','descricao produto':'desc','produto':'desc','item':'desc','nome produto':'desc','industria':'ind','fabricante':'ind','marca':'ind','laboratorio':'ind','nome industria':'ind','preco':'preco','preco tabela':'preco','valor':'preco','preco tabela base':'preco','unidade':'unid','unid':'unid','un':'unid','categoria':'cat','cat':'cat','preco distribuidor':'precoDistribuidor','distribuidor':'precoDistribuidor','preco dist':'precoDistribuidor','preco atacado':'precoAtacado','atacado':'precoAtacado','preco atac':'precoAtacado','preco varejo':'precoVarejo','varejo':'precoVarejo','preco var':'precoVarejo','codigo mg':'codigoMG','cod mg':'codigoMG','codigo sp':'codigoSP','cod sp':'codigoSP','codigo ba':'codigoBA','cod ba':'codigoBA','codigo go':'codigoGO','cod go':'codigoGO','codigo rj':'codigoRJ','cod rj':'codigoRJ','codigo pr':'codigoPR','cod pr':'codigoPR','codigo sc':'codigoSC','cod sc':'codigoSC','codigo rs':'codigoRS','cod rs':'codigoRS','ean mg':'eanMG','ean minas':'eanMG','ean minas gerais':'eanMG','ean sp':'eanSP','ean sao paulo':'eanSP','ean ba':'eanBA','ean bahia':'eanBA','ean go':'eanGO','ean rj':'eanRJ','ean pr':'eanPR','ean sc':'eanSC','ean rs':'eanRS','canais':'canais','canais disponiveis':'canais','disponibilidade':'canais','canal':'canais'});
 const _HMD = Object.assign({},_HMB,{'cliente':'cliente','razao social':'cliente','industria':'industria','nome industria':'industria','tipo':'tipo','tipo pedido':'tipo','data':'data','data pedido':'data','data emissao':'data','condicao':'cond','cond':'cond','prazo pgto':'cond','condicao comercial':'cond','condicao pagamento':'cond','grupo':'grupo','pedido':'grupo','num pedido':'grupo','numero pedido':'grupo','id pedido':'grupo','codigo':'cod','cod':'cod','cod produto':'cod','cod. produto':'cod','codigo produto':'cod','sku':'cod','ref':'cod','descricao':'desc','descricao produto':'desc','produto':'desc','item':'desc','nome produto':'desc','qtd':'qtd','quantidade':'qtd','quant':'qtd','qty':'qtd','desconto':'descPct','desc %':'descPct','% desconto':'descPct','pct desconto':'descPct','descpct':'descPct','desconto %':'descPct','preco unit':'precoUnit','preco unitario':'precoUnit','valor unit':'precoUnit','preco un':'precoUnit','preco':'precoUnit','total item':'total','total':'total','valor total':'total','subtotal':'total','valor':'total','status':'status','situacao':'status','% comissao':'pct','comissao %':'pct','pct comissao':'pct','percentual comissao':'pct','taxa comissao':'pct','nf':'nf_numero','numero nf':'nf_numero','num nf':'nf_numero','nota fiscal':'nf_numero','nf numero':'nf_numero','numero da nf':'nf_numero','valor nf':'nf_valor','valor faturado':'nf_valor','valor nota':'nf_valor','valor nota fiscal':'nf_valor','vl nf':'nf_valor','nf valor':'nf_valor','data nf':'nf_data','data faturamento':'nf_data','data nota':'nf_data','data nota fiscal':'nf_data','dia faturado':'nf_data','dt nf':'nf_data','nf data':'nf_data','emissao nf':'nf_data'});
 // ── Mapas financeiros e CRM ──
-const _HMCR = {
-  'cliente':'cliente','cliente/industria':'cliente','cliente / industria':'cliente','cliente industria':'cliente','industria':'cliente','razao social':'cliente','sacado':'cliente','pagador':'cliente',
-  'valor':'valor','valor bruto':'valor','vlr':'valor','valor receita':'valor','valor original':'valor',
-  'data lancamento':'dataLanc','data lanc':'dataLanc','data lanc.':'dataLanc','data de lancamento':'dataLanc','lancamento':'dataLanc','data':'dataLanc',
-  'mes receita':'mesReceita','mes':'mesReceita','mes ref':'mesReceita','competencia':'mesReceita',
-  'empresa':'empresa',
-  'tipo receita':'tipo','tipo':'tipo','tipo de receita':'tipo',
-  'descricao':'descricao','descricao receita':'descricao','historico':'descricao','obs':'descricao','observacao':'descricao','observacoes':'descricao',
-  'plano recebimento':'planoReceb','plano receb':'planoReceb','plano receb.':'planoReceb','forma recebimento':'planoReceb','forma de recebimento':'planoReceb','plano':'planoReceb',
-  'banco':'banco','conta':'banco','conta bancaria':'banco',
-  'desconto fin':'descontoFin','desconto fin.':'descontoFin','desconto financeiro':'descontoFin','desc fin':'descontoFin','desconto':'descontoFin','abatimento':'descontoFin',
-  'juros':'juros','juros/multa':'juros','multa':'juros','acrescimo':'juros',
-  'vencimento':'vencimento','data vencimento':'vencimento','vcto':'vencimento','venc':'vencimento',
-  'data recebimento':'dataPagamento','recebimento':'dataPagamento','data pagamento':'dataPagamento','pagamento':'dataPagamento','data receb':'dataPagamento','recebido em':'dataPagamento','baixa':'dataPagamento'
-};
-const _HMCP = {
-  'fornecedor':'fornecedor','fornecedor/prestador':'fornecedor','fornecedor / prestador':'fornecedor','prestador':'fornecedor','razao social':'fornecedor','favorecido':'fornecedor','beneficiario':'fornecedor','credor':'fornecedor',
-  'valor':'valor','valor bruto':'valor','vlr':'valor','valor despesa':'valor','valor original':'valor',
-  'data lancamento':'dataLanc','data lanc':'dataLanc','data lanc.':'dataLanc','data de lancamento':'dataLanc','lancamento':'dataLanc','data':'dataLanc',
-  'mes despesa':'mesDespesa','mes':'mesDespesa','mes ref':'mesDespesa','competencia':'mesDespesa',
-  'empresa':'empresa',
-  'descricao':'descricao','descricao despesa':'descricao','historico':'descricao','obs':'descricao','observacao':'descricao','observacoes':'descricao',
-  'classif financeira':'classif','classif. financeira':'classif','classificacao':'classif','classif':'classif','classe':'classif','conta contabil':'classif','categoria':'classif',
-  'centro de custo':'centroCusto','centro custo':'centroCusto','centrocusto':'centroCusto','cc':'centroCusto',
-  'banco':'banco','conta':'banco','conta bancaria':'banco',
-  'desc/juros':'descJuros','desc juros':'descJuros','desconto/juros':'descJuros','juros':'descJuros','multa':'descJuros','acrescimo':'descJuros','desconto':'descJuros',
-  'vencimento':'vencimento','data vencimento':'vencimento','vcto':'vencimento','venc':'vencimento',
-  'data pagamento':'dataPagamento','pagamento':'dataPagamento','data pgto':'dataPagamento','pago em':'dataPagamento','baixa':'dataPagamento'
-};
-const _HMCB = {
-  'valor':'valor','vlr':'valor','valor movimentacao':'valor','valor original':'valor',
-  'data':'data','data movimentacao':'data','data mov':'data',
-  'empresa':'empresa',
-  'tipo movimentacao':'tipo','tipo de movimentacao':'tipo','tipo mov':'tipo','tipo':'tipo','natureza':'tipo',
-  'e/s':'es','es':'es','entrada/saida':'es','entrada saida':'es','e s':'es','tipo e/s':'es',
-  'descricao':'descricao','historico':'descricao','obs':'descricao','observacao':'descricao','observacoes':'descricao',
-  'saiu de':'saiu','saiu':'saiu','banco origem':'saiu','origem':'saiu','conta origem':'saiu','saida':'saiu',
-  'entrou em':'entrou','entrou':'entrou','banco destino':'entrou','destino':'entrou','conta destino':'entrou','entrada':'entrou',
-  'centro de custo':'centroCusto','centro custo':'centroCusto','centrocusto':'centroCusto','cc':'centroCusto',
-  'vencimento':'vencimento','data vencimento':'vencimento','vcto':'vencimento','venc':'vencimento',
-  'data quitacao':'dataQuit','quitacao':'dataQuit','data quit':'dataQuit','quitado em':'dataQuit','baixa':'dataQuit'
-};
 const _HMCC = {
   'cliente':'cliente','razao social':'cliente','nome':'cliente','sacado':'cliente',
   'valor':'valor','vlr':'valor','valor original':'valor',
@@ -9539,13 +9474,25 @@ const _HMCC = {
   'mes ref':'mesRef','mes referencia':'mesRef','mes':'mesRef','competencia':'mesRef','mesref':'mesRef',
   'descricao':'descricao','historico':'descricao','obs':'descricao','observacao':'descricao','observacoes':'descricao'
 };
-const _HMCT = {
-  'nome':'nome','contato':'nome','nome contato':'nome','nome do contato':'nome',
-  'tipo':'tipo','tipo contato':'tipo','categoria':'tipo',
-  'cargo':'cargo','funcao':'cargo','posicao':'cargo',
-  'empresa':'empresa','organizacao':'empresa','cliente':'empresa','industria':'empresa',
+const _HMCRM = {
+  'tipo':'tipo','tipo cadastro':'tipo','tipo contato':'tipo','categoria':'tipo','cliente ou industria':'tipo',
+  'empresa':'empresa','nome':'empresa','nome empresa':'empresa','organizacao':'empresa',
+  'cliente':'empresa','industria':'empresa','razao social':'empresa','nome / razao social':'empresa',
+  'nome fantasia':'fantasia','fantasia':'fantasia','razao':'fantasia',
+  'cnpj':'cnpj','cpf/cnpj':'cnpj',
+  'segmento':'segmento','perfil':'segmento','tipo cliente':'segmento',
+  'rede':'rede','grupo':'rede','rede / grupo':'rede','rede grupo':'rede',
+  'endereco':'endereco','logradouro':'endereco','rua':'endereco',
+  'bairro':'bairro',
+  'cidade':'cidade','cidade/uf':'cidade','cidade / uf':'cidade','municipio':'cidade','estado':'cidade',
+  'cep':'cep','codigo postal':'cep',
+  'prazo':'prazo','prazo pgto':'prazo','prazo pagamento':'prazo','prazo de pagamento':'prazo',
+  '% comissao':'pct','comissao %':'pct','comissao':'pct','pct':'pct','percentual':'pct',
+  'setor':'setor','departamento':'setor','depto':'setor','area':'setor','cargo':'setor','funcao':'setor',
+  'responsavel':'nome','nome responsavel':'nome','nome do responsavel':'nome','contato':'nome',
+  'nome contato':'nome','nome do contato':'nome','pessoa':'nome',
+  'email':'email','e-mail':'email','e mail':'email','email responsavel':'email',
   'telefone':'telefone','fone':'telefone','celular':'telefone','whatsapp':'telefone','tel':'telefone',
-  'email':'email','e-mail':'email','e mail':'email',
   'obs':'obs','observacao':'obs','observacoes':'obs','notas':'obs','anotacoes':'obs'
 };
 const HEADER_MAP = _HMP; // compatibilidade com código existente
@@ -9558,7 +9505,7 @@ function normHeader(h) {
 
 function mapearColunas(headers, tipo) {
   const mapas = {clientes:_HMC, industrias:_HMI, produtos:_HMP, pedido:_HMD,
-                 cr:_HMCR, cp:_HMCP, cb:_HMCB, cc:_HMCC, contatos:_HMCT};
+                 cc:_HMCC, crm:_HMCRM};
   const mapa = mapas[tipo] || _HMP;
   return headers.map(h => mapa[normHeader(h)] || null);
 }
@@ -9567,7 +9514,7 @@ function importarCadastro(tipo, modoLacunas) {
   importTipo = tipo;
   _importModoLacunas = !!modoLacunas && (tipo === 'clientes' || tipo === 'industrias');
   const titulos = {clientes:'Clientes',industrias:'Indústrias',produtos:'Produtos',pedido:'Pedidos',orcamento:'Orçamentos',
-                   cr:'Contas a Receber',cp:'Contas a Pagar',cb:'Caixa e Bancos',cc:'Conta Corrente',contatos:'Contatos CRM'};
+                   cc:'Conta Corrente',crm:'CRM (Clientes, Indústrias e Responsáveis)'};
   el('import-modal-titulo').textContent = 'Importar ' + (titulos[tipo]||tipo);
   el('import-preview').style.display = 'none';
   el('import-file-name').textContent = '.xlsx, .xls, .csv, .pdf — máx. 10MB';
@@ -9585,7 +9532,38 @@ function importarCadastro(tipo, modoLacunas) {
       </div>`
     : '';
   if(cols && tpl) {
-    if(tipo === 'pedido') {
+    if(tipo === 'crm') {
+      const colRows = cols.map((c,i) => `
+        <tr style="background:${i%2===0?'#fff':'#fafaf8'}">
+          <td style="padding:5px 10px;font-weight:700;color:#555;font-size:11px;white-space:nowrap">${String.fromCharCode(65+i)}</td>
+          <td style="padding:5px 10px;font-weight:700;font-size:12px;color:${c.req?'#1a1a1a':'#444'}">${c.label}${c.req?' <span style="color:var(--vermelho)">*</span>':''}</td>
+          <td style="padding:5px 10px;font-size:11px;color:#888">${c.hint||''}</td>
+        </tr>`).join('');
+      tpl.innerHTML = `
+        <div style="background:#fff8e1;border:1px solid #f0d060;border-left:4px solid var(--amarelo);border-radius:6px;padding:12px 14px;margin-bottom:8px">
+          <div style="font-weight:700;font-size:12px;margin-bottom:6px">📋 Uma planilha só, com tudo do CRM:</div>
+          <div style="font-size:11px;color:#7a5800;line-height:1.8">
+            ✅ <strong>Uma linha por responsável</strong> — repita o nome da empresa em cada linha dela<br>
+            ✅ Os dados da empresa (CNPJ, endereço, prazo...) precisam ser preenchidos <strong>só na primeira linha</strong><br>
+            ✅ <strong>Empresa que não existe é criada</strong>; a que já existe recebe só o que estiver <strong>vazio</strong> no cadastro — nada é sobrescrito<br>
+            ✅ <strong>Setor novo é criado sozinho</strong> — Compras, Marketing, Diretoria, o que precisar<br>
+            ✅ Linha sem responsável cadastra <strong>só a empresa</strong>; responsável repetido é <strong>completado</strong>, não duplicado
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--cinza-medio);border-radius:6px;overflow:hidden">
+            <thead>
+              <tr style="background:#1a1a1a">
+                <th style="padding:7px 10px;text-align:left;color:#888;font-size:10px;font-weight:700;letter-spacing:.5px;width:28px">COL</th>
+                <th style="padding:7px 10px;text-align:left;color:var(--amarelo);font-size:11px;font-weight:700">NOME DA COLUNA</th>
+                <th style="padding:7px 10px;text-align:left;color:#aaa;font-size:11px;font-weight:400">COMO PREENCHER</th>
+              </tr>
+            </thead>
+            <tbody>${colRows}</tbody>
+          </table>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#888">* obrigatório — baixe o modelo para ver um exemplo pronto</div>`;
+    } else if(tipo === 'pedido') {
       // Layout especial para pedidos — tabela visual clara com ordem das colunas
       const colRows = cols.map((c,i) => `
         <tr style="background:${i%2===0?'#fff':'#fafaf8'}">
@@ -10342,10 +10320,19 @@ function confirmarImport() {
   // Rota para confirmação de importação de orçamentos (com preview)
   if(importTipo === 'orc-preview') { _confirmarOrcImport(); return; }
 
-  // Rota para módulos Financeiro (CR/CP/CB/CC) e CRM (contatos)
-  if(['cr','cp','cb','cc','contatos'].includes(importTipo)) {
+  // Rota para responsáveis por setor (CRM)
+  if(importTipo === 'crm') {
     if(!importDados || importDados.length === 0) { toast('Nenhum dado para importar.','error'); return; }
-    confirmarImportFinanceiro(); return;
+    confirmarImportCRM(); return;
+  }
+
+  // Rota para módulos Financeiro (CR/CP/CB/CC)
+  if(importTipo === 'cc') {
+    if(!importDados || importDados.length === 0) { toast('Nenhum dado para importar.','error'); return; }
+    if(typeof confirmarImportContaCorrente !== 'function') {
+      toast('Importação de Conta Corrente indisponível nesta versão.','error'); return;
+    }
+    confirmarImportContaCorrente(); return;
   }
 
   if(!importDados || importDados.length === 0) {
@@ -10770,22 +10757,172 @@ function recalcularTipoComissoesIndustria(nomeInd, novoTipo) {
   return atualizados;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   IMPORTAÇÃO DE RESPONSÁVEIS POR SETOR (CRM)
+   Uma linha por pessoa. Grava dentro de cliente.contatos[setor] /
+   industria.contatos[setor], que é onde o CRM lê os responsáveis.
+   Setor que ainda não existe é criado como setor personalizado.
+══════════════════════════════════════════════════════════════════ */
+function _normTxt(v) {
+  return String(v||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+
+function confirmarImportCRM() {
+  var cliNovos=0, cliCompl=0, indNovos=0, indCompl=0;
+  var respNovos=0, respCompl=0, setoresNovos=0, linhasIgnoradas=0;
+  var empresasTocadas = {};
+
+  // preenche só o que está vazio — nunca sobrescreve o que já existe
+  var _c = function(novo, atual) {
+    var n = (novo==null?'':String(novo).trim());
+    var a = (atual==null?'':String(atual).trim());
+    return a || n;
+  };
+
+  importDados.forEach(function(row){
+    var empresa = (row.empresa||'').trim();
+    if(!empresa) { linhasIgnoradas++; return; }
+
+    var t = _normTxt(row.tipo);
+    var tipo = /indus|fabric|laborat|fornec|marca/.test(t) ? 'industria' : 'cliente';
+    var chaveEmp = tipo + '|' + _normTxt(empresa);
+    var cnpjLimpo = (row.cnpj||'').replace(/\D/g,'');
+
+    // ── 1. Empresa: acha ou cria ──────────────────────────────────
+    var alvo, novaEmpresa = false;
+    if(tipo === 'industria') {
+      alvo = industrias.find(function(o){
+        return _normTxt(o.nome) === _normTxt(empresa)
+            || _normTxt(o.razao) === _normTxt(empresa)
+            || (cnpjLimpo && o.cnpj && o.cnpj.replace(/\D/g,'') === cnpjLimpo);
+      });
+      if(!alvo) {
+        alvo = { id:'IND-' + String(Date.now()+indNovos).slice(-5), nome: empresa.toUpperCase(),
+                 razao:'', cnpj:'', pct:0, tipoCom:'Faturamento', contato:'', email:'', telefone:'',
+                 status:'Ativo', obs:'', contatos:{} };
+        industrias.push(alvo);
+        novaEmpresa = true; indNovos++;
+      }
+      alvo.razao = _c(row.fantasia, alvo.razao);
+      alvo.cnpj  = _c(row.cnpj,     alvo.cnpj);
+      if(!alvo.pct) {
+        var p = parseFloat(String(row.pct||'').replace(',','.'));
+        if(!isNaN(p) && p > 0) alvo.pct = p;
+      }
+      alvo.obs = _c(row.obs, alvo.obs);
+      if(!alvo.status) alvo.status = 'Ativo';
+    } else {
+      alvo = clientes.find(function(o){
+        return _normTxt(o.nome) === _normTxt(empresa)
+            || _normTxt(o.fantasia) === _normTxt(empresa)
+            || (cnpjLimpo && o.cnpj && o.cnpj.replace(/\D/g,'') === cnpjLimpo);
+      });
+      if(!alvo) {
+        alvo = { id:'CLI-' + String(Date.now()+cliNovos).slice(-5), nome: empresa,
+                 fantasia:'', cnpj:'', ie:'', segmento:'', endereco:'', bairro:'', cidade:'', cep:'',
+                 prazo:'', contato:'', email:'', telefone:'', status:'Ativo', obs:'', rede:'', contatos:{} };
+        clientes.push(alvo);
+        novaEmpresa = true; cliNovos++;
+      }
+      alvo.fantasia = _c(row.fantasia, alvo.fantasia);
+      alvo.cnpj     = _c(row.cnpj,     alvo.cnpj);
+      alvo.segmento = _c(row.segmento, alvo.segmento);
+      alvo.rede     = _c(row.rede,     alvo.rede);
+      alvo.endereco = _c(row.endereco, alvo.endereco);
+      alvo.bairro   = _c(row.bairro,   alvo.bairro);
+      alvo.cidade   = _c(row.cidade,   alvo.cidade);
+      alvo.cep      = _c(row.cep,      alvo.cep);
+      alvo.prazo    = _c(row.prazo,    alvo.prazo);
+      alvo.obs      = _c(row.obs,      alvo.obs);
+      if(!alvo.status) alvo.status = 'Ativo';
+    }
+
+    // conta "complementado" uma vez por empresa já existente
+    if(!novaEmpresa && !empresasTocadas[chaveEmp]) {
+      if(tipo === 'industria') indCompl++; else cliCompl++;
+    }
+    empresasTocadas[chaveEmp] = true;
+
+    // ── 2. Responsável do setor (opcional na linha) ───────────────
+    var nome  = (row.nome||'').trim();
+    var email = (row.email||'').trim();
+    var tel   = (row.telefone||'').trim();
+    if(!nome && !email && !tel) return;   // linha só de cadastro da empresa
+
+    var setorLabel = (row.setor||'').trim() || 'Comercial';
+    var defs = _setoresDef(tipo);
+    var achado = defs.find(function(s){
+      return _normTxt(s.label) === _normTxt(setorLabel) || s.key === _setorKeyFromLabel(setorLabel);
+    });
+    var key;
+    if(achado) { key = achado.key; }
+    else {
+      key = _setorKeyFromLabel(setorLabel);
+      if(!setoresCustom[tipo]) setoresCustom[tipo] = [];
+      setoresCustom[tipo].push({ key:key, label:setorLabel, custom:true });
+      setoresNovos++;
+    }
+
+    if(!alvo.contatos) alvo.contatos = {};
+    var arr = _crmResponsaveis(alvo, key).slice();
+    var idx = arr.findIndex(function(r){
+      return (email && r.email && _normTxt(r.email) === _normTxt(email))
+          || (nome && _normTxt(r.nome) === _normTxt(nome));
+    });
+    if(idx >= 0) {
+      arr[idx] = { nome: arr[idx].nome || nome, email: arr[idx].email || email, tel: arr[idx].tel || tel };
+      respCompl++;
+    } else {
+      arr.push({ nome:nome, email:email, tel:tel });
+      respNovos++;
+    }
+    alvo.contatos[key] = arr;
+  });
+
+  closeModal('modal-import');
+  if(typeof renderClientes === 'function')          renderClientes();
+  if(typeof renderIndustrias === 'function')        renderIndustrias();
+  if(typeof renderRedes === 'function')             renderRedes();
+  if(typeof popularSelectsDinamicos === 'function') popularSelectsDinamicos();
+  if(typeof renderCRMClientes === 'function')       renderCRMClientes();
+  if(typeof renderCRMIndustrias === 'function')     renderCRMIndustrias();
+  addAudit(usuarioLogado?.login||'admin',
+    'Importou CRM: ' + (cliNovos+indNovos) + ' empresas novas, ' + respNovos + ' responsáveis novos', '📥');
+
+  var m = [];
+  if(cliNovos || cliCompl) m.push('Clientes: ' + cliNovos + ' novo(s), ' + cliCompl + ' complementado(s)');
+  if(indNovos || indCompl) m.push('Indústrias: ' + indNovos + ' nova(s), ' + indCompl + ' complementada(s)');
+  m.push('Responsáveis: ' + respNovos + ' novo(s), ' + respCompl + ' já existente(s)');
+  if(setoresNovos) m.push(setoresNovos + ' setor(es) criado(s)');
+  if(linhasIgnoradas) m.push(linhasIgnoradas + ' linha(s) sem empresa ignorada(s)');
+  toast('✅ ' + m.join(' · '));
+  syncAutoSaveHook();
+}
+
+
 function baixarModeloImport() {
   const cols = IMPORT_COLS[importTipo];
   if(!cols) { toast('Modelo não disponível para este tipo.','error'); return; }
   const titulos = {clientes:'Clientes',industrias:'Industrias',produtos:'Produtos',pedido:'Pedidos',
-                   cr:'Contas_a_Receber',cp:'Contas_a_Pagar',cb:'Caixa_e_Bancos',cc:'Conta_Corrente',contatos:'Contatos_CRM'};
+                   cc:'Conta_Corrente',crm:'CRM_Completo'};
   const wb = XLSX.utils.book_new();
   const header = cols.map(c => c.label + (c.req?' *':''));
   const exemplo = {
     clientes: ['Farmácia Central', 'Farmácia Central', '12.345.678/0001-90', '123.456.789.012', 'Varejo', 'Rua Exemplo, 123 - Sala 4', 'Centro', 'São Paulo, SP', '01000-000', '28D', 'João Silva', 'joao@farmaciacentral.com', '(11) 99999-9999', 'Ativo', ''],
     industrias: ['LABOTRAT', 'Laboratório Tratamento Ltda', '98.765.432/0001-10', '7', 'Faturamento', 'Ana Lima', 'ana@labotrat.com', '(11) 3333-4444', 'Ativo', ''],
     produtos: ['ZAL-001', '7891234560012', 'Shampoo Hidratação 300ml', 'ZALIKE', 'Shampoo', '18.00', '12.00', '14.50', '18.00', '0156mg', '0156sp', '0156', '', '', '', '', '', '7891234560013', '7891234560012', '7891234560011', '', '', '', '', '', 'distribuidor,atacado,varejo', 'UN', 'Ativo', ''],
-    cr: ['LABOTRAT', '1.500,00', '01/03/2026', '03/2026', 'COMERCIAL', 'COMISSÃO DE VENDAS', 'Comissão pedido 1234', 'PIX', 'NUBANK COMERCIAL', '0,00', '0,00', '10/03/2026', ''],
-    cp: ['Papelaria Silva Ltda', '350,00', '01/03/2026', '03/2026', 'COMERCIAL', 'Material de escritório', '3.6', 'Administrativo', 'NUBANK COMERCIAL', '0,00', '05/03/2026', ''],
-    cb: ['5.000,00', '01/03/2026', 'COMERCIAL', 'TRANSFERÊNCIA DE RECURSO', 'S', 'Transferência entre contas', 'NUBANK COMERCIAL', 'ITAÚ COMERCIAL', '', '01/03/2026', ''],
     cc: ['Farmácia Central', '1.200,00', '01/03/2026', 'ZALIKE', 'debito', 'Acordo comercial', 'ACD-001', '03/2026', 'Verba de ação'],
-    contatos: ['Maria Souza', 'Cliente', 'Compradora', 'Farmácia Central', '(11) 98888-7777', 'maria@farmaciacentral.com', 'Prefere contato à tarde'],
+    crm: [
+      // Tipo    | Empresa           | CNPJ                 | Fantasia/Razão            | Segmento | Rede/Grupo | Endereço             | Bairro   | Cidade/UF       | CEP        | Prazo | %Com | Setor                       | Responsável   | E-mail                           | Telefone          | Obs
+      ['Cliente',  'Farmácia Central', '12.345.678/0001-90', 'Farmacentral',             'Varejo', 'Rede Vida', 'Rua Exemplo, 123',   'Centro',  'São Paulo, SP', '01000-000', '28D', '',   'Comercial',                  'Maria Souza',  'maria@farmaciacentral.com',      '(11) 98888-7777', 'Cliente desde 2020'],
+      ['Cliente',  'Farmácia Central', '',                   '',                         '',       '',          '',                   '',        '',              '',          '',    '',   'Recebimento de Mercadorias', 'Carlos Dias',  'recebimento@farmaciacentral.com','(11) 3222-1010',  ''],
+      ['Cliente',  'Farmácia Central', '',                   '',                         '',       '',          '',                   '',        '',              '',          '',    '',   'Compras',                    'Ana Prado',    'compras@farmaciacentral.com',    '(11) 98111-2222', ''],
+      ['Cliente',  'Drogaria Bom Dia', '98.765.432/0001-10', '',                         'Varejo', '',          'Av. Brasil, 900',    'Jardins', 'Campinas, SP',  '13000-000', '30D', '',   'Comercial',                  'Rita Nunes',   'rita@bomdia.com.br',             '(19) 97777-1234', ''],
+      ['Indústria','LABOTRAT',         '11.222.333/0001-44', 'Laboratório Tratamento Ltda','',     '',          '',                   '',        'São Paulo, SP', '',          '',    '7',  'Comercial',                  'Ana Lima',     'ana@labotrat.com',               '(11) 3333-4444',  ''],
+      ['Indústria','LABOTRAT',         '',                   '',                         '',       '',          '',                   '',        '',              '',          '',    '',   'Logística',                  'Pedro Alves',  'logistica@labotrat.com',         '(11) 3333-4455',  ''],
+    ],
     pedido: [
       // Cliente       | Indústria | Tipo        | Data       | Condição | Status    | Cód.     | Descrição                   | Qtd | Desconto | Preço Unit | Total
       ['Farmácia Central', 'LABOTRAT', 'venda',        '01/03/2026', '60D', 'Recebido', 'LAB-001', 'Shampoo Hidratação 300ml',    '2',  '10',      '18.00',    '32.40'],
@@ -13155,6 +13292,8 @@ function salvarConfig(){
   configSistema.moeda        = (el('cfg-moeda')||{}).value || configSistema.moeda;
   configSistema.diasAlerta   = parseInt((el('cfg-dias-alerta')||{}).value)||5;
   configSistema.emailAdmin   = (el('cfg-email-admin')||{}).value || configSistema.emailAdmin;
+  if(el('cfg-webmail-url')) configSistema.webmailUrl = (el('cfg-webmail-url').value || '').trim() || WEBMAIL_PADRAO;
+  if(el('cfg-webmail-compor')) configSistema.webmailComporUrl = (el('cfg-webmail-compor').value || '').trim();
   // EmailJS — lembretes de tarefas e convites de reunião
   configSistema.emailJSServiceId  = (el('cfg-emailjs-service')||{}).value  || '';
   configSistema.emailJSTemplateId = (el('cfg-emailjs-template')||{}).value || '';
@@ -13937,6 +14076,8 @@ function renderConfiguracoes() {
   if(el('cfg-moeda'))       el('cfg-moeda').value        = configSistema.moeda      || 'BRL';
   if(el('cfg-dias-alerta')) el('cfg-dias-alerta').value  = configSistema.diasAlerta || 5;
   if(el('cfg-email-admin')) el('cfg-email-admin').value  = configSistema.emailAdmin || '';
+  if(el('cfg-webmail-url')) el('cfg-webmail-url').value  = configSistema.webmailUrl || WEBMAIL_PADRAO;
+  if(el('cfg-webmail-compor')) el('cfg-webmail-compor').value = configSistema.webmailComporUrl || '';
 
   // ─── Controle granular por usuário ───
   const div = el('cfg-acesso-usuarios'); if(!div) return;
@@ -14378,15 +14519,10 @@ function coletarDadosParaSync() {
     // ─── Módulos novos: Tarefas, Atas, CRM, Conta Corrente, Financeiro ───
     tarefasData:        JSON.parse(JSON.stringify(typeof tarefasData!=='undefined'?tarefasData:[])),
     atasData:           JSON.parse(JSON.stringify(typeof atasData!=='undefined'?atasData:[])),
-    crmData:            JSON.parse(JSON.stringify(typeof crmData!=='undefined'?crmData:[])),
     setoresCustom:      JSON.parse(JSON.stringify(typeof setoresCustom!=='undefined'?setoresCustom:{cliente:[],industria:[]})),
     contaCorrenteData:  JSON.parse(JSON.stringify(typeof contaCorrenteData!=='undefined'?contaCorrenteData:[])),
     ccContas:           JSON.parse(JSON.stringify(typeof ccContas!=='undefined'?ccContas:[])),
     ccContasCadastradas:JSON.parse(JSON.stringify(typeof ccContasCadastradas!=='undefined'?ccContasCadastradas:{})),
-    finCRData:          JSON.parse(JSON.stringify(typeof finCRData!=='undefined'?finCRData:[])),
-    finCPData:          JSON.parse(JSON.stringify(typeof finCPData!=='undefined'?finCPData:[])),
-    finCBData:          JSON.parse(JSON.stringify(typeof finCBData!=='undefined'?finCBData:[])),
-    cbTipos:            JSON.parse(JSON.stringify(typeof cbTipos!=='undefined'?cbTipos:[])),
     modulosConfig:      JSON.parse(JSON.stringify(typeof modulosConfig!=='undefined'?modulosConfig:{})),
     modulosCustom:      JSON.parse(JSON.stringify(typeof modulosCustom!=='undefined'?modulosCustom:[])),
     userAcoes:          JSON.parse(JSON.stringify(typeof userAcoes!=='undefined'?userAcoes:{})),
@@ -14424,7 +14560,6 @@ function aplicarDadosDaNuvem(dados, silencioso=false, forcado=false) {
   // ─── Módulos novos: Tarefas, Atas, CRM, Conta Corrente, Financeiro ───
   if(Array.isArray(dados.tarefasData)) tarefasData = dados.tarefasData;
   if(Array.isArray(dados.atasData)) atasData = dados.atasData;
-  if(Array.isArray(dados.crmData)) crmData = dados.crmData;
   if(dados.setoresCustom && typeof dados.setoresCustom==='object'){
     setoresCustom = {
       cliente:   Array.isArray(dados.setoresCustom.cliente)   ? dados.setoresCustom.cliente   : [],
@@ -14434,10 +14569,6 @@ function aplicarDadosDaNuvem(dados, silencioso=false, forcado=false) {
   if(Array.isArray(dados.contaCorrenteData)) contaCorrenteData = dados.contaCorrenteData;
   if(Array.isArray(dados.ccContas)) ccContas = dados.ccContas;
   if(dados.ccContasCadastradas && typeof dados.ccContasCadastradas==='object') ccContasCadastradas = dados.ccContasCadastradas;
-  if(Array.isArray(dados.finCRData)) finCRData = dados.finCRData;
-  if(Array.isArray(dados.finCPData)) finCPData = dados.finCPData;
-  if(Array.isArray(dados.finCBData)) finCBData = dados.finCBData;
-  if(Array.isArray(dados.cbTipos)) cbTipos = dados.cbTipos;
   if(dados.modulosConfig && typeof dados.modulosConfig==='object') modulosConfig = dados.modulosConfig;
   if(Array.isArray(dados.modulosCustom)) modulosCustom = dados.modulosCustom;
   if(dados.userAcoes && typeof dados.userAcoes==='object') userAcoes = dados.userAcoes;
@@ -16906,7 +17037,6 @@ window.addEventListener('appinstalled', function() {
 let tarefasData = [];
 let atasData = [];
 let contaCorrenteData = [];
-let crmData = [];
 let setoresCustom = { cliente: [], industria: [] };
 let ccContas = [];
 let ccContasCadastradas = {};
@@ -16915,18 +17045,6 @@ var ccContaSel = null;
 let modulosConfig = {};
 let modulosCustom = [];
 let userAcoes = {};
-// FIX v27 — nao zerar cbTipos ja restaurado (mesmo bug do finCRData/CP/CB).
-var cbTipos = (typeof cbTipos !== 'undefined' && Array.isArray(cbTipos)) ? cbTipos : [];
-var CB_TIPOS_PADRAO = [
-  {nome:'TRANSFERÊNCIA DE RECURSO',              es:'T'},
-  {nome:'RETIRADA DE SÓCIO',                     es:'S'},
-  {nome:'TARIFA BANCÁRIA',                       es:'S'},
-  {nome:'APLICAÇÃO FINANCEIRA',                  es:'S'},
-  {nome:'RENDIMENTO DE APLICAÇÕES FINANCEIRAS',  es:'E'},
-  {nome:'CAPTAÇÃO DE EMPRÉSTIMO',                es:'E'},
-  {nome:'AMORTIZAÇÃO DE EMPRÉSTIMO',             es:'S'},
-  {nome:'APORTE DE CAPITAL',                     es:'E'}
-];
 const ACOES_PERM = ['visualizar','criar','editar','excluir','exportar'];
 const ACOES_LABEL = {visualizar:'Visualizar', criar:'Criar', editar:'Editar', excluir:'Excluir', exportar:'Exportar'};
 var CC_GRUPOS_CONHECIDOS = [
@@ -16999,7 +17117,6 @@ function launcherTemAcesso(mod) {
 }
 const LAUNCHER_PAINEL_DESTINO = {
   comercial:       'dashboard',
-  financeiro:      'financeiro',
   tarefas:         'tarefas',
   atas:            'atas',
   clientes:        'clientes-crm',
@@ -17009,74 +17126,6 @@ const LAUNCHER_PAINEL_DESTINO = {
   administracao:   'configuracoes',
 };
 
-// FIX v27 — NAO reinicializar com []: este bloco <script> roda DEPOIS de
-// _carregarLocal(), entao "var finCRData = []" apagava tudo que tinha sido
-// restaurado do localStorage. Era por isso que os dados sumiam ao voltar
-// ao Menu Principal. Mantem o valor ja existente, se houver.
-var finCRData = (typeof finCRData !== 'undefined' && Array.isArray(finCRData)) ? finCRData : [];
-var finContatos = (typeof finContatos !== 'undefined' && Array.isArray(finContatos)) ? finContatos : [];
-var finAbaAtiva = 'dashboard';
-var FIN_PORTADORES = ['CAIXA','NUBANK COMERCIAL','NUBANK EXECUÇÃO','INTER COMERCIAL','INTER EXECUÇÃO','SANTANDER'];
-var FIN_PORTADOR_COR = {
-  'CAIXA': '#27ae60',
-  'NUBANK COMERCIAL': '#B200ED',
-  'NUBANK EXECUÇÃO': '#9B59B6',
-  'INTER COMERCIAL': '#FF6B00',
-  'INTER EXECUÇÃO': '#E8A87C',
-  'SANTANDER': '#EC0000'
-};
-var FIN_PORTADOR_EMPRESA = {
-  'CAIXA': '',
-  'NUBANK COMERCIAL': 'COMERCIAL',
-  'NUBANK EXECUÇÃO': 'EXECUÇÃO',
-  'INTER COMERCIAL': 'COMERCIAL',
-  'INTER EXECUÇÃO': 'EXECUÇÃO',
-  'SANTANDER': 'COMERCIAL'
-};
-var FIN_CLASS_CP = {
-  '3.1.2': 'Estadias e Alimentação Operacional',
-  '3.1.3': 'Transporte e Logística Comercial',
-  '3.1.4': 'Comissões Devidas',
-  '3.2.1': 'COFINS - Imp. s/ Resultado Operacional',
-  '3.2.2': 'CSLL - Imp. s/ Resultado Líquido',
-  '3.2.3': 'ICMS - Imp. s/ Produtos',
-  '3.2.4': 'IRPJ - Imp. s/ Resultado Líquido',
-  '3.2.5': 'Simples Nacional / ISS',
-  '3.2.6': 'PIS - Imp. s/ Resultado Operacional',
-  '3.3.1': 'Benefícios ao Colaborador',
-  '3.3.2': 'Bonificação e Premiação',
-  '3.3.3': 'Contribuição Sindical',
-  '3.3.4': 'Encargo Social',
-  '3.3.5': 'Lanche / Refeição / Confraternização',
-  '3.3.6': 'Medicina do Trabalho',
-  '3.3.7': 'Rescisão e Multa',
-  '3.3.8': 'Salário / Férias / 13º',
-  '3.3.9': 'Treinamento e Convenção',
-  '3.3.10': 'Uniforme / EPI',
-  '3.4.1': 'Serviço Contábil / Fiscal',
-  '3.4.2': 'Assessoria Jurídica',
-  '3.4.3': 'Assessoria em Gestão',
-  '3.4.4': 'Material de Escritório',
-  '3.4.5': 'Serviço Externo e Postal',
-  '3.4.6': 'Taxa de Convênio e Parceria',
-  '3.4.7': 'Taxa de Fiscalização e Licença',
-  '3.4.8': 'Juros sob Pagamentos Atrasados',
-  '3.4.9': 'Assessoria em RH',
-  '3.5.1': 'Desconto Financeiro',
-  '3.5.2': 'Eventos Comerciais',
-  '3.5.3': 'Brindes e Amostras',
-  '3.5.4': 'Publicidade e Marketing',
-  '3.5.5': 'Outras Despesas Comerciais',
-  '3.6.1': 'Aluguel',
-  '3.6.2': 'Condomínio',
-  '3.6.3': 'Energia Elétrica',
-  '3.6.4': 'Água e Esgoto',
-  '3.6.5': 'Internet e Telefone',
-  '3.6.6': 'Manutenção do Imóvel',
-  '3.6.7': 'Manutenção de Equipamentos',
-  '3.6.8': 'Material de Higiene e Limpeza',
-  '3.6.9': 'Seguro de Bens'
-};
 var CRM_CORES = ['#E6F1FB','#EAF3DE','#FAEEDA','#EEEDFE','#FAECE7','#E1F5EE','#FCEBEB'];
 var CRM_TEXTO = ['#0C447C','#3B6D11','#854F0B','#534AB7','#993C1D','#085041','#A32D2D'];
 let _launcherModuloAlvo = null;
@@ -17085,9 +17134,6 @@ let _tarEditId = null;
 let _ataEditId = null;
 let _ataParticipantesSel = [];
 let _ataConvidadosExt = [];
-// FIX v27 — mesmo motivo do finCRData acima: nao zerar o que ja foi restaurado.
-var finCPData = (typeof finCPData !== 'undefined' && Array.isArray(finCPData)) ? finCPData : [];
-var finCBData = (typeof finCBData !== 'undefined' && Array.isArray(finCBData)) ? finCBData : [];
 var _setoresTmp = {};
 var _tarAnexosTmp = [];
 var _tarDragId = null;
@@ -17369,190 +17415,6 @@ function renderRelHistorico() {
   } catch(e) { console.warn('renderRelHistorico:', e); }
 }
 
-function crmCarregarDados() {
-  try {
-    var d = localStorage.getItem('gestcom_crm_contatos');
-    if(d) finContatos = JSON.parse(d);
-  } catch(e) {}
-}
-
-function crmSalvarDados() {
-  try { localStorage.setItem('gestcom_crm_contatos', JSON.stringify(finContatos)); } catch(e) {}
-}
-
-function crmNovoContato() {
-  var fields = ['crm-c-nome','crm-c-tipo','crm-c-cargo','crm-c-empresa','crm-c-telefone','crm-c-email','crm-c-obs'];
-  fields.forEach(function(id){ var el = document.getElementById(id); if(el) { if(el.tagName==='SELECT') el.value='Cliente'; else el.value=''; } });
-  var tit = document.getElementById('crm-modal-titulo');
-  if(tit) tit.textContent = 'Novo Contato';
-  window._crmEditId = null;
-  openModal('modal-crm-contato');
-  setTimeout(function(){ var n=document.getElementById('crm-c-nome'); if(n) n.focus(); },100);
-}
-
-function crmSalvarContato() {
-  var nome = (document.getElementById('crm-c-nome')||{}).value||'';
-  if(!nome.trim()) { alert('Informe o nome do contato.'); return; }
-  var obj = {
-    id: window._crmEditId || ('CRM-'+Date.now()),
-    nome: nome.trim(),
-    tipo: (document.getElementById('crm-c-tipo')||{}).value||'Outro',
-    cargo: (document.getElementById('crm-c-cargo')||{}).value||'',
-    empresa: (document.getElementById('crm-c-empresa')||{}).value||'',
-    telefone: (document.getElementById('crm-c-telefone')||{}).value||'',
-    email: (document.getElementById('crm-c-email')||{}).value||'',
-    obs: (document.getElementById('crm-c-obs')||{}).value||''
-  };
-  if(window._crmEditId) {
-    var idx = finContatos.findIndex(function(c){ return c.id === window._crmEditId; });
-    if(idx >= 0) finContatos[idx] = obj;
-  } else {
-    finContatos.push(obj);
-  }
-  crmSalvarDados();
-  closeModal('modal-crm-contato');
-  renderCRMContatos();
-  toast('Contato salvo!');
-}
-
-function crmExcluirContato(id) {
-  if(!confirm('Excluir este contato?')) return;
-  finContatos = finContatos.filter(function(c){ return c.id !== id; });
-  crmSalvarDados();
-  renderCRMContatos();
-  toast('Contato excluído.');
-}
-
-function crmEditarContato(id) {
-  var c = finContatos.find(function(x){ return x.id===id; });
-  if(!c) return;
-  window._crmEditId = id;
-  var set = function(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; };
-  set('crm-c-nome', c.nome);
-  set('crm-c-tipo', c.tipo);
-  set('crm-c-cargo', c.cargo);
-  set('crm-c-empresa', c.empresa);
-  set('crm-c-telefone', c.telefone);
-  set('crm-c-email', c.email);
-  set('crm-c-obs', c.obs);
-  var tit = document.getElementById('crm-modal-titulo');
-  if(tit) tit.textContent = 'Editar Contato';
-  openModal('modal-crm-contato');
-}
-
-function crmExportarContatos() {
-  try {
-    var wb = XLSX.utils.book_new();
-    var rows = [['CRM — CONTATOS — COMERCIAL TRÊS VALES'],[''],
-      ['Nome','Tipo','Cargo','Empresa','Telefone','E-mail','Observações']];
-    finContatos.forEach(function(c){
-      rows.push([c.nome,c.tipo,c.cargo||'',c.empresa||'',c.telefone||'',c.email||'',c.obs||'']);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Contatos');
-    XLSX.writeFile(wb, 'crm_contatos.xlsx');
-    toast('Contatos exportados!');
-  } catch(e){ toast('Erro: '+e.message,'error'); }
-}
-
-function renderCRMContatos() {
-  try {
-    var busca = ((document.getElementById('crm-busca')||{}).value||'').toLowerCase();
-    var tipoFilt = (document.getElementById('crm-tipo-filtro')||{}).value||'';
-    var ordem = (document.getElementById('crm-ordem')||{}).value||'az';
-
-    // KPIs
-    var el = function(id){return document.getElementById(id);};
-    if(el('crm-total')) el('crm-total').textContent = finContatos.length;
-    if(el('crm-qtd-clientes')) el('crm-qtd-clientes').textContent = finContatos.filter(function(c){return c.tipo==='Cliente';}).length;
-    if(el('crm-qtd-industrias')) el('crm-qtd-industrias').textContent = finContatos.filter(function(c){return c.tipo==='Indústria';}).length;
-    if(el('crm-qtd-outros')) el('crm-qtd-outros').textContent = finContatos.filter(function(c){return c.tipo!=='Cliente'&&c.tipo!=='Indústria';}).length;
-
-    var list = finContatos.filter(function(c){
-      if(busca && !(c.nome||'').toLowerCase().includes(busca) && !(c.empresa||'').toLowerCase().includes(busca) && !(c.telefone||'').includes(busca)) return false;
-      if(tipoFilt && c.tipo !== tipoFilt) return false;
-      return true;
-    });
-
-    if(ordem === 'az') list.sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||''); });
-    else if(ordem === 'tipo') list.sort(function(a,b){ return (a.tipo||'').localeCompare(b.tipo||'') || (a.nome||'').localeCompare(b.nome||''); });
-    else if(ordem === 'empresa') list.sort(function(a,b){ return (a.empresa||'').localeCompare(b.empresa||'') || (a.nome||'').localeCompare(b.nome||''); });
-
-    var container = el('crm-lista-contatos');
-    if(!container) return;
-
-    if(list.length === 0) {
-      container.innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--cinza-escuro)">'+
-        (finContatos.length === 0
-          ? 'Nenhum contato cadastrado. Clique em <strong>+ Novo Contato</strong> para começar.'
-          : 'Nenhum contato encontrado com os filtros aplicados.')+
-        '</div>';
-      return;
-    }
-
-    // Agrupar por letra inicial (se ordenação A-Z)
-    var grupos = {};
-    list.forEach(function(c){
-      var letra = ordem === 'az' ? (c.nome||'?')[0].toUpperCase() : (ordem === 'tipo' ? c.tipo : (c.empresa||'?')[0].toUpperCase());
-      if(!grupos[letra]) grupos[letra] = [];
-      grupos[letra].push(c);
-    });
-
-    var letras = Object.keys(grupos).sort();
-    var html = '';
-    html += '<div style="background:var(--branco);border:0.5px solid var(--cinza-medio);border-radius:10px;overflow:hidden">';
-
-    letras.forEach(function(letra) {
-      html += '<div style="background:var(--cinza);padding:6px 16px;font-size:11px;font-weight:700;color:var(--cinza-escuro);text-transform:uppercase;letter-spacing:.8px;border-bottom:0.5px solid var(--cinza-medio)">'+esc(letra)+'</div>';
-      grupos[letra].forEach(function(c, i) {
-        var hashCode = 0;
-        for(var ch=0; ch<c.nome.length; ch++) hashCode = ((hashCode<<5)-hashCode)+c.nome.charCodeAt(ch);
-        var ci = Math.abs(hashCode) % CRM_CORES.length;
-        var avatarBg = CRM_CORES[ci];
-        var avatarTxt = CRM_TEXTO[ci];
-        var iniciais = c.nome.split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
-        var temTel = c.telefone && c.telefone.trim().length > 0;
-        var temEmail = c.email && c.email.trim().length > 0;
-        var telNum = (c.telefone||'').replace(/\D/g,'');
-        if(telNum.length===11) telNum = '55'+telNum;
-        var tipoBadgeColor = c.tipo==='Cliente'?'#E6F1FB,#0C447C':c.tipo==='Indústria'?'#FAEEDA,#854F0B':c.tipo==='Fornecedor'?'#EAF3DE,#3B6D11':'var(--cinza),var(--cinza-escuro)';
-        var tc = tipoBadgeColor.split(',');
-
-        html += '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:0.5px solid var(--cinza-medio)" id="crm-row-'+esc(c.id)+'">';
-        html += '<div style="width:40px;height:40px;border-radius:50%;background:'+avatarBg+';color:'+avatarTxt+';display:flex;align-items:center;justify-content:center;font-family:\'Syne\',sans-serif;font-size:14px;font-weight:700;flex-shrink:0">'+iniciais+'</div>';
-        html += '<div style="flex:1;min-width:0">';
-        html += '<div style="font-weight:600;font-size:13px;color:var(--preto)">'+esc(c.nome)+'</div>';
-        html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap">';
-        html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:'+tc[0]+';color:'+tc[1]+';font-weight:600">'+esc(c.tipo)+'</span>';
-        if(c.empresa) html += '<span style="font-size:11px;color:var(--cinza-escuro)">'+esc(c.empresa)+'</span>';
-        if(c.cargo) html += '<span style="font-size:11px;color:var(--cinza-escuro)">· '+esc(c.cargo)+'</span>';
-        html += '</div>';
-        if(c.obs) html += '<div style="font-size:11px;color:var(--cinza-escuro);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">'+esc(c.obs)+'</div>';
-        html += '</div>';
-        if(temTel) html += '<div style="font-size:12px;color:var(--cinza-escuro);white-space:nowrap;margin-right:8px">'+esc(c.telefone)+'</div>';
-        html += '<div style="display:flex;gap:6px;align-items:center">';
-        // WhatsApp
-        if(temTel) {
-          html += '<a href="https://wa.me/'+telNum+'" target="_blank" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #25D366;display:flex;align-items:center;justify-content:center;color:#25D366;font-size:16px;text-decoration:none" title="Abrir WhatsApp">📱</a>';
-        } else {
-          html += '<div style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--cinza-medio);display:flex;align-items:center;justify-content:center;color:var(--cinza-medio);font-size:16px;opacity:.4" title="Sem telefone">📱</div>';
-        }
-        // Email
-        if(temEmail) {
-          html += '<a href="javascript:void(0)" data-email="'+c.email+'" onclick="var m=this.dataset.email;window.open(\'mailto:\'+m,\'_self\');" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--azul);display:flex;align-items:center;justify-content:center;color:var(--azul);font-size:16px;text-decoration:none" title="E-mail: '+c.email+'">✉️</a>';
-        } else {
-          html += '<div style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--cinza-medio);display:flex;align-items:center;justify-content:center;color:var(--cinza-medio);font-size:16px;opacity:.4" title="Sem e-mail">✉️</div>';
-        }
-        html += '<button class="btn btn-outline btn-xs" style="width:32px;height:32px;padding:0;border-radius:50%" data-crmid="'+esc(c.id)+'" onclick="crmEditarContato(this.dataset.crmid)">✏️</button>';
-        html += '<button class="btn btn-danger btn-xs" style="width:32px;height:32px;padding:0;border-radius:50%" data-crmid="'+esc(c.id)+'" onclick="crmExcluirContato(this.dataset.crmid)">🗑️</button>';
-        html += '</div>';
-        html += '</div>';
-      });
-    });
-    html += '</div>';
-    container.innerHTML = html;
-  } catch(e) { console.warn('renderCRMContatos:', e); }
-}
-
 function relMudarAba(aba, btnEl) {
   if(!aba) aba = _relAbaAtiva;
   _relAbaAtiva = aba;
@@ -17781,42 +17643,6 @@ function mostrarLauncher() {
 
 function _atualizarExecPanel() {
   try {
-    // Contas a receber (do CRM)
-    var totalReceber = 0;
-    var vencRC = 0;
-    if(typeof crmData !== 'undefined') {
-      crmData.filter(function(c){ return !c.excluido && c.status !== 'Recebida' && c.status !== 'Cancelada'; }).forEach(function(c){ totalReceber += (c.valor||0) - (c.pago||0); });
-      vencRC = crmData.filter(function(c){ return c.status === 'Vencida'; }).length;
-    }
-    var erA = document.getElementById('exec-a-receber');
-    var erAS = document.getElementById('exec-a-receber-sub');
-    if(erA) erA.textContent = fmt(totalReceber);
-    if(erAS) erAS.textContent = vencRC + ' vencidas';
-
-    // Contas a pagar (do módulo fin se existir)
-    var totalPagar = 0;
-    if(typeof finContasPagar !== 'undefined') {
-      finContasPagar.filter(function(c){ return !c.excluido && c.status !== 'Pago' && c.status !== 'Cancelada'; }).forEach(function(c){ totalPagar += (c.valor||0)-(c.pago||0); });
-    }
-    var epA = document.getElementById('exec-a-pagar');
-    if(epA) epA.textContent = fmt(totalPagar);
-
-    // Saldo bancário
-    var saldoBancos = 0;
-    if(typeof finBancos !== 'undefined') {
-      finBancos.filter(function(b){ return !b.excluido; }).forEach(function(b){ saldoBancos += b.saldoInicial || 0; });
-    }
-    var eSB = document.getElementById('exec-saldo-bancario');
-    if(eSB) eSB.textContent = fmt(saldoBancos);
-
-    // Saldo CC
-    var saldoCC = 0;
-    if(typeof contaCorrenteData !== 'undefined') {
-      contaCorrenteData.forEach(function(c){ saldoCC += c.tipo === 'credito' ? c.valor : -c.valor; });
-    }
-    var eSC = document.getElementById('exec-saldo-cc');
-    if(eSC) eSC.textContent = fmt(saldoCC);
-
     // Tarefas pendentes
     var tarefasPend = 0;
     if(typeof tarefasData !== 'undefined') {
@@ -17913,17 +17739,6 @@ function _entrarNoModulo() {
       if(modKey === 'crm') {
         if(typeof renderCRMClientes === 'function') renderCRMClientes();
         if(typeof renderCRMIndustrias === 'function') renderCRMIndustrias();
-      }
-      if(modKey === 'financeiro') {
-        // v29 removido: try { finCarregarDados(); } catch(e) {}
-        // v29 removido: if(typeof finMostrarAbaConfig === 'function') finMostrarAbaConfig();
-        if(typeof cbPopularSelectsTipo === 'function') cbPopularSelectsTipo();
-        setTimeout(function(){
-          // v29 removido: if(typeof finPopularMeses === 'function') finPopularMeses();
-          // v29 removido: if(typeof finAtualizarBadgeMes === 'function') finAtualizarBadgeMes();
-          if(typeof renderFinanceiroPainel === 'function') renderFinanceiroPainel();
-          // v29 removido: if(typeof finRenderDashboard === 'function') finRenderDashboard();
-        }, 100);
       }
       if(modKey === 'conta-corrente') {
         if(typeof popularSelectsCC === 'function') popularSelectsCC();
@@ -18026,14 +17841,6 @@ function abrirModuloSeparado(key) {
   } else if(key === 'crm') {
     renderCRMClientes();
     renderCRMIndustrias();
-  } else if(key === 'financeiro') {
-    // v29 removido: try { finCarregarDados(); } catch(e) {}
-    // v29 removido: if (typeof finMostrarAbaConfig === 'function') finMostrarAbaConfig();
-    if (typeof cbPopularSelectsTipo === 'function') cbPopularSelectsTipo();
-    // v29 removido: if (typeof finPopularMeses === 'function') finPopularMeses();
-    // v29 removido: if (typeof finAtualizarBadgeMes === 'function') finAtualizarBadgeMes();
-    if (typeof renderFinanceiroPainel === 'function') renderFinanceiroPainel();
-    // v29 removido: if (typeof finRenderDashboard === 'function') finRenderDashboard();
   }
 
   addAudit(usuarioLogado?.login||'sistema', 'Acessou módulo: ' + key, '🚀');
@@ -18075,13 +17882,6 @@ function _atualizarBadgeModuloCC() {
   });
   const b = document.getElementById('mod-cc-badge');
   if(b) b.textContent = 'Saldo ' + fmt(total);
-}
-
-function _atualizarBadgeModuloCRM() {
-  const total = crmData.filter(x => x.status !== 'Recebida' && x.status !== 'Cancelada')
-    .reduce((s, x) => s + (x.valor - (x.recebido||0)), 0);
-  const b = document.getElementById('mod-crm-badge');
-  if(b) b.textContent = 'A receber ' + fmt(total);
 }
 
 function hoje() {
@@ -20521,286 +20321,6 @@ function exportarContaCorrenteExcel() {
   toast('Excel exportado com sucesso!');
 }
 
-function switchCRMTab(tab, el_) {
-  _crmTabAtual = tab;
-  document.querySelectorAll('#crm-tabs .tab').forEach(t=>t.classList.remove('active'));
-  if(el_) el_.classList.add('active');
-  ['receber','followup','historico'].forEach(t=>{
-    const d = el(`crm-tab-${t}`); if(d) d.style.display = t===tab?'':'none';
-  });
-  if(tab==='receber') renderCRM();
-  else if(tab==='followup') renderCRMFollowup();
-  else renderCRMHistorico();
-}
-
-function novoCRMItem() {
-  _crmEditId = null;
-  el('crm-modal-titulo').textContent = 'Nova Conta a Receber';
-  el('crm-cli').value = '';
-  el('crm-ind').value = '';
-  el('crm-desc').value = '';
-  el('crm-valor').value = '';
-  el('crm-emissao').value = hoje();
-  el('crm-vencimento').value = '';
-  el('crm-status-campo').value = 'Pendente';
-  el('crm-nf').value = '';
-  el('crm-obs').value = '';
-  popularSelectsCRM();
-  openModal('modal-crm');
-}
-
-function popularSelectsCRM() {
-  ['crm-cli','crm-filtro-cli'].forEach(id=>{
-    const sel=el(id); if(!sel) return;
-    sel.innerHTML=(id.includes('filtro')?'<option value="">Todos os clientes</option>':'<option value="">Selecione...</option>')+
-      clientes.filter(c=>c.status==='Ativo').map(c=>`<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('');
-  });
-  const selInd=el('crm-ind'); if(selInd) selInd.innerHTML='<option value="">Selecione...</option>'+industrias.filter(i=>i.status==='Ativo').map(i=>`<option value="${esc(i.nome)}">${esc(i.nome)}</option>`).join('');
-}
-
-function salvarCRMItem() {
-  const cli = el('crm-cli')?.value; if(!cli) { alert('Selecione o cliente.'); return; }
-  const valor = parseFloat(el('crm-valor')?.value||'0');
-  if(!valor||valor<=0) { alert('Informe um valor válido.'); return; }
-  const venc = el('crm-vencimento')?.value; if(!venc) { alert('Informe a data de vencimento.'); return; }
-
-  const obj = {
-    id: _crmEditId || ('CRM-'+String(crmData.length+1).padStart(4,'0')),
-    cliente: cli,
-    industria: el('crm-ind')?.value||'',
-    descricao: el('crm-desc')?.value||'',
-    valor,
-    recebido: _crmEditId ? (crmData.find(x=>x.id===_crmEditId)?.recebido||0) : 0,
-    emissao: el('crm-emissao')?.value||hoje(),
-    vencimento: venc,
-    status: el('crm-status-campo')?.value||'Pendente',
-    nf: el('crm-nf')?.value||'',
-    obs: el('crm-obs')?.value||'',
-    historico: _crmEditId ? (crmData.find(x=>x.id===_crmEditId)?.historico||[]) : [],
-    criadoPor: usuarioLogado?.nome||'—',
-    criadoEm: _crmEditId ? (crmData.find(x=>x.id===_crmEditId)?.criadoEm||hoje()) : hoje()
-  };
-
-  if(_crmEditId) {
-    crmData = crmData.map(x=>x.id===_crmEditId?obj:x);
-  } else {
-    crmData.push(obj);
-  }
-
-  syncAutoSaveHook();
-  closeModal('modal-crm');
-  renderCRM();
-  toast('Conta a receber salva!');
-}
-
-function crmRegistrarRecebimento(id) {
-  const item = crmData.find(x=>x.id===id);
-  if(!item) return;
-  const val = parseFloat(prompt(`Valor recebido (saldo: ${fmt(item.valor - item.recebido)}):`)||'0');
-  if(!val || val<=0) return;
-  item.recebido = (item.recebido||0) + val;
-  if(item.recebido >= item.valor) item.status = 'Recebida';
-  else item.status = 'Parcial';
-  item.historico = [...(item.historico||[]), {
-    data: hoje(),
-    valor: val,
-    usuario: usuarioLogado?.nome||'—',
-    obs: 'Recebimento registrado'
-  }];
-  syncAutoSaveHook();
-  renderCRM();
-  toast(`Recebimento de ${fmt(val)} registrado!`);
-}
-
-function editarCRMItem(id) {
-  const x = crmData.find(c=>c.id===id);
-  if(!x) return;
-  _crmEditId = id;
-  el('crm-modal-titulo').textContent = 'Editar Conta a Receber';
-  popularSelectsCRM();
-  setTimeout(()=>{
-    el('crm-cli').value = x.cliente;
-    el('crm-ind').value = x.industria;
-  },50);
-  el('crm-desc').value = x.descricao;
-  el('crm-valor').value = x.valor;
-  el('crm-emissao').value = x.emissao;
-  el('crm-vencimento').value = x.vencimento;
-  el('crm-status-campo').value = x.status;
-  el('crm-nf').value = x.nf||'';
-  el('crm-obs').value = x.obs||'';
-  openModal('modal-crm');
-}
-
-function excluirCRMItem(id) {
-  if(!confirm('Excluir esta conta a receber?')) return;
-  crmData = crmData.filter(x=>x.id!==id);
-  syncAutoSaveHook();
-  renderCRM();
-  toast('Conta excluída.');
-}
-
-function renderCRM() {
-  const tbody = el('crm-tbody'); if(!tbody) return;
-  const busca = (el('crm-busca')?.value||'').toLowerCase();
-  const filtStatus = el('crm-filtro-status')?.value||'';
-  const filtCli = el('crm-filtro-cli')?.value||'';
-
-  // Auto-marcar vencidas
-  crmData.forEach(x=>{
-    if(x.status==='Pendente' && x.vencimento && x.vencimento < hoje()) x.status='Vencida';
-  });
-
-  const list = crmData.filter(x=>{
-    if(busca && !x.cliente.toLowerCase().includes(busca) && !x.descricao.toLowerCase().includes(busca)) return false;
-    if(filtStatus && x.status!==filtStatus) return false;
-    if(filtCli && x.cliente!==filtCli) return false;
-    return true;
-  }).sort((a,b)=>a.vencimento.localeCompare(b.vencimento));
-
-  // KPIs
-  const hj = hoje(); const em7 = new Date(); em7.setDate(em7.getDate()+7); const em7Str = em7.toISOString().split('T')[0];
-  const mesAtual = hj.substring(0,7);
-  let kVenc=0, kProx=0, kTotal=0, kRecMes=0;
-  crmData.forEach(x=>{
-    const saldo = x.valor - (x.recebido||0);
-    if(x.status==='Vencida') kVenc+=saldo;
-    if(x.status==='Pendente' && x.vencimento<=em7Str) kProx+=saldo;
-    if(x.status!=='Recebida'&&x.status!=='Cancelada') kTotal+=saldo;
-    if(x.status==='Recebida'&&(x.vencimento||'').startsWith(mesAtual)) kRecMes+=x.recebido||0;
-  });
-  if(el('crm-kpi-vencidas')) el('crm-kpi-vencidas').textContent=fmt(kVenc);
-  if(el('crm-kpi-proximas')) el('crm-kpi-proximas').textContent=fmt(kProx);
-  if(el('crm-kpi-total')) el('crm-kpi-total').textContent=fmt(kTotal);
-  if(el('crm-kpi-recebido')) el('crm-kpi-recebido').textContent=fmt(kRecMes);
-
-  const stCls = {Pendente:'badge-amarelo', Parcial:'badge-laranja', Recebida:'badge-verde', Vencida:'badge-vermelho', Cancelada:'badge-cinza'};
-
-  tbody.innerHTML = list.length===0
-    ? `<tr><td colspan="11" style="text-align:center;color:#aaa;padding:20px">Nenhuma conta encontrada</td></tr>`
-    : list.map(x=>{
-        const saldo = x.valor - (x.recebido||0);
-        const vencClass = x.status==='Vencida' ? 'color:var(--vermelho);font-weight:700' : (x.vencimento===hj?'color:var(--laranja);font-weight:700':'');
-        return `<tr>
-          <td class="mono bold">${x.id}</td>
-          <td><strong>${esc(x.cliente)}</strong></td>
-          <td><span class="tag">${esc(x.industria||'—')}</span></td>
-          <td>${esc(x.descricao||'—')}${x.nf?`<div style="font-size:10px;color:#888">NF: ${x.nf}</div>`:''}</td>
-          <td>${fmtData(x.emissao)}</td>
-          <td><span style="${vencClass}">${fmtData(x.vencimento)}</span></td>
-          <td class="bold">${fmt(x.valor)}</td>
-          <td class="bold verde">${fmt(x.recebido||0)}</td>
-          <td class="bold ${saldo>0?'vermelho':'verde'}">${fmt(saldo)}</td>
-          <td><span class="badge ${stCls[x.status]||'badge-cinza'}">${x.status}</span></td>
-          <td>
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${x.status!=='Recebida'&&x.status!=='Cancelada'?`<button class="btn btn-success btn-xs" onclick="crmRegistrarRecebimento('${x.id}')">💰</button>`:''}
-              <button class="btn btn-outline btn-xs" onclick="editarCRMItem('${x.id}')">✏️</button>
-              <button class="btn btn-danger btn-xs" onclick="excluirCRMItem('${x.id}')">🗑️</button>
-            </div>
-          </td>
-        </tr>`;
-      }).join('');
-}
-
-function renderCRMFollowup() {
-  const box = el('crm-followup-list'); if(!box) return;
-  const hj = hoje();
-  const vencidas = crmData.filter(x=>x.status==='Vencida');
-  const aVencer = crmData.filter(x=>x.status==='Pendente'&&x.vencimento<=new Date(Date.now()+7*86400000).toISOString().split('T')[0]);
-
-  box.innerHTML = `
-    ${vencidas.length>0?`
-      <div style="margin-bottom:16px">
-        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--vermelho);margin-bottom:8px">🚨 Contas Vencidas (${vencidas.length})</div>
-        ${vencidas.map(x=>`
-          <div class="card" style="margin-bottom:8px;border-left:4px solid var(--vermelho)">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div><strong>${esc(x.cliente)}</strong> · ${esc(x.descricao||'—')}</div>
-              <div class="bold vermelho">${fmt(x.valor-(x.recebido||0))}</div>
-            </div>
-            <div style="font-size:11px;color:#888;margin-top:4px">Venceu em ${fmtData(x.vencimento)} · ${Math.abs(dataDiff(x.vencimento,hj))} dias de atraso</div>
-          </div>
-        `).join('')}
-      </div>
-    `:''}
-    ${aVencer.length>0?`
-      <div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--laranja);margin-bottom:8px">⏰ Próximos Vencimentos (${aVencer.length})</div>
-        ${aVencer.map(x=>`
-          <div class="card" style="margin-bottom:8px;border-left:4px solid var(--amarelo)">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div><strong>${esc(x.cliente)}</strong> · ${esc(x.descricao||'—')}</div>
-              <div class="bold">${fmt(x.valor-(x.recebido||0))}</div>
-            </div>
-            <div style="font-size:11px;color:#888;margin-top:4px">Vence em ${fmtData(x.vencimento)} · ${dataDiff(hj,x.vencimento)} dias</div>
-          </div>
-        `).join('')}
-      </div>
-    `:''}
-    ${vencidas.length===0&&aVencer.length===0?'<div style="text-align:center;color:#aaa;padding:30px">✅ Nenhuma conta em atraso ou a vencer nos próximos 7 dias</div>':''}
-  `;
-}
-
-function renderCRMHistorico() {
-  const box = el('crm-historico-list'); if(!box) return;
-  const historico = [];
-  crmData.forEach(x=>{
-    (x.historico||[]).forEach(h=>{
-      historico.push({...h, cliente:x.cliente, crmId:x.id, descricao:x.descricao});
-    });
-  });
-  historico.sort((a,b)=>b.data.localeCompare(a.data));
-
-  box.innerHTML = historico.length===0
-    ? '<div style="text-align:center;color:#aaa;padding:30px">Nenhum histórico de recebimento registrado</div>'
-    : historico.map(h=>`
-        <div class="audit-row">
-          <div class="audit-icon">💰</div>
-          <div style="flex:1">
-            <strong>${esc(h.cliente)}</strong> · ${esc(h.descricao||h.crmId)}
-            <div style="font-size:11px;color:#888">${h.obs||'Recebimento'} · ${h.usuario} · ${fmtData(h.data)}</div>
-          </div>
-          <div class="bold verde">${fmt(h.valor)}</div>
-        </div>
-      `).join('');
-}
-
-function exportarCRMExcel() {
-  if(typeof XLSX==='undefined') { alert('Biblioteca XLSX não carregada.'); return; }
-  const wb = XLSX.utils.book_new();
-  const rows = [['ID','Cliente','Indústria','Descrição','Emissão','Vencimento','Valor','Recebido','Saldo','Status','NF']];
-  crmData.forEach(x=>rows.push([x.id,x.cliente,x.industria,x.descricao,x.emissao,x.vencimento,x.valor,x.recebido||0,(x.valor-(x.recebido||0)),x.status,x.nf||'']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'CRM');
-  XLSX.writeFile(wb, 'CRM_GestCom.xlsx');
-}
-
-function renderFinanceiroPainel() {
-  try {
-    var mesAtual = new Date().toISOString().substring(0,7);
-    // KPIs
-    var fatTotal = pedidos.filter(function(p){ return p.nf && !p.excluido; }).reduce(function(s,p){ return s+(p.nf.liquida||0); }, 0);
-    var comPrev  = comissoes_data.filter(function(c){ return !c.excluido && c.status !== 'Recebida'; }).reduce(function(s,c){ return s+c.valor; }, 0);
-    var bonTotal = bonificacoesData.reduce(function(s,b){ return s+(b.valorPedido||0); }, 0);
-    var saldoCC  = contaCorrenteData.reduce(function(s,c){ return s + (c.tipo==='credito'?c.valor:-c.valor); }, 0);
-
-    var e = document.getElementById('fin-exec-fat');  if(e) e.textContent = fmt(fatTotal);
-    var e2 = document.getElementById('fin-exec-com'); if(e2) e2.textContent = fmt(comPrev);
-    var e3 = document.getElementById('fin-exec-cc');  if(e3) e3.textContent = fmt(saldoCC);
-    var e4 = document.getElementById('fin-exec-bon'); if(e4) e4.textContent = fmt(bonTotal);
-    var es = document.getElementById('fin-exec-fat-sub'); if(es) es.textContent = pedidos.filter(function(p){ return p.nf&&!p.excluido; }).length + ' NFs';
-
-    // Cards de acesso rápido
-    var comMes = comissoes_data.filter(function(c){ return !c.excluido&&c.status!=='Recebida'; }).reduce(function(s,c){ return s+c.valor; },0);
-    var e5 = document.getElementById('fin-acc-com'); if(e5) e5.textContent = fmt(comMes);
-
-    var cliComSaldo = new Set(pedidos.filter(function(p){return !p.excluido;}).map(function(p){return p.cliente;})).size;
-    var e6 = document.getElementById('fin-acc-saldo'); if(e6) e6.textContent = cliComSaldo + ' clientes';
-
-    var e7 = document.getElementById('fin-acc-cc'); if(e7) e7.textContent = fmt(Math.abs(saldoCC));
-  } catch(err) { console.warn('renderFinanceiroPainel:', err); }
-}
-
 function renderClientesCRM() {
   try {
     var busca    = ((document.getElementById('crm-cli-busca')||{}).value||'').toLowerCase();
@@ -21107,6 +20627,97 @@ function _fecharMenuEmail() {
   document.removeEventListener('click', _fecharMenuEmail);
 }
 
+/* ── Webmail corporativo (Professional Mail) ──────────────────────────
+   Monta o link de "escrever para" conforme o webmail configurado.
+   Titan (atual)  → secureserver.titan.email/mail/
+   OX App Suite   → formato antigo da GoDaddy, mantido por compatibilidade */
+function _webmailBase() {
+  var u = (typeof configSistema !== 'undefined' && configSistema.webmailUrl)
+            ? String(configSistema.webmailUrl).trim() : '';
+  if (!u || /myprofessionalmail|godaddy/i.test(u)) u = WEBMAIL_PADRAO;
+  return u;
+}
+
+function _webmailLink(destinatarios) {
+  var lista = Array.isArray(destinatarios) ? destinatarios.join(',') : (destinatarios || '');
+  var base = _webmailBase();
+  // Webmail antigo (OX App Suite / GoDaddy): aceitava deep link por hash
+  if (/appsuite/i.test(base)) {
+    return base + '#!!&app=io.ox/mail&folder=default0/INBOX&mailto=mailto:' + encodeURIComponent(lista);
+  }
+  // Titan não tem URL pública de "compor". Abre a caixa; o destinatário vai
+  // pela área de transferência (ou pelo mailto, se o Titan for o app padrão).
+  return base;
+}
+
+/* ── Escrever para alguém ──────────────────────────────────────────────
+   Abre o compositor JÁ COM O DESTINATÁRIO. Dois caminhos:
+   1) Se houver um "modelo de composição" configurado (URL com %s), usa ele.
+   2) Senão, dispara um mailto: — que o Titan atende quando estiver
+      definido como app de e-mail padrão do navegador. */
+function abrirEscrever(destinatarios) {
+  var lista = Array.isArray(destinatarios) ? destinatarios.join(',') : (destinatarios || '');
+  if (!lista) return;
+  var tpl = (typeof configSistema !== 'undefined' && configSistema.webmailComporUrl)
+              ? String(configSistema.webmailComporUrl).trim() : '';
+  _fecharMenuEmail();
+  if (tpl && tpl.indexOf('%s') > -1) {
+    // %s recebe o mailto: inteiro codificado — igual ao que o navegador faz
+    window.open(tpl.replace('%s', encodeURIComponent('mailto:' + lista)), '_blank');
+    return;
+  }
+  // Abre em ABA NOVA: quando o Titan está registrado como app de e-mail,
+  // um window.location trocaria a página do sistema pela do Titan.
+  var href = 'mailto:' + lista.split(',').map(function(e){
+    return encodeURIComponent(e.trim());
+  }).filter(Boolean).join(',');
+  var a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); }, 0);
+}
+
+/* ── Professional Mail ─────────────────────────────────────────────────
+   O webmail antigo (GoDaddy) tinha link de composição; o Titan não tem.
+   Então: se houver "URL de composição" configurada, abre o compositor
+   preenchido; senão abre a caixa do Titan com o endereço já copiado. */
+function abrirProfessionalMail(destinatarios) {
+  var lista = Array.isArray(destinatarios) ? destinatarios.join(',') : (destinatarios || '');
+  var tpl = (typeof configSistema !== 'undefined' && configSistema.webmailComporUrl)
+              ? String(configSistema.webmailComporUrl).trim() : '';
+  if (tpl && tpl.indexOf('%s') > -1) {
+    _fecharMenuEmail();
+    window.open(tpl.replace('%s', encodeURIComponent('mailto:' + lista)), '_blank');
+    return;
+  }
+  abrirWebmail(lista);
+}
+
+/* Abre a caixa do Titan já com o endereço na área de transferência:
+   é só clicar em "Escrever" e colar no destinatário. */
+function abrirWebmail(destinatarios) {
+  var lista = Array.isArray(destinatarios) ? destinatarios.join(',') : (destinatarios || '');
+  // Copia ANTES de abrir a aba (depois do window.open o navegador pode
+  // tirar o foco da página e bloquear a área de transferência).
+  var copiado = false;
+  try { copiado = _copiarFallback(lista); } catch (e) {}
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lista).then(function(){}, function(){});
+    }
+  } catch (e) {}
+  window.open(_webmailLink(lista), '_blank');
+  _fecharMenuEmail();
+  if (typeof toast === 'function') {
+    toast(copiado ? '📋 ' + lista + ' copiado — cole no destinatário.'
+                  : 'Titan aberto. Endereço: ' + lista);
+  }
+}
+
 function abrirMenuEmail(ev, email) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   _fecharMenuEmail();
@@ -21129,10 +20740,10 @@ function abrirMenuEmail(ev, email) {
       '<div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.5px">Enviar e-mail para</div>' +
       '<div style="font-size:12px;font-weight:600;word-break:break-all">' + esc(email) + '</div>' +
     '</div>' +
-    item('✉️', 'Professional Mail', "window.open((typeof configSistema!=='undefined' && configSistema.webmailUrl ? configSistema.webmailUrl : 'https://am1.myprofessionalmail.com/appsuite/') + '#!!&app=io.ox/mail&folder=default0/INBOX&mailto=mailto:" + enc + "','_blank');_fecharMenuEmail()") +
+    item('✉️', 'Professional Mail', "abrirProfessionalMail(" + JSON.stringify(email).replace(/"/g,'&quot;') + ")") +
     item('📧', 'Abrir no Gmail', "window.open('https://mail.google.com/mail/?view=cm&fs=1&to=" + enc + "','_blank');_fecharMenuEmail()") +
     item('📨', 'Abrir no Outlook web', "window.open('https://outlook.office.com/mail/deeplink/compose?to=" + enc + "','_blank');_fecharMenuEmail()") +
-    item('💻', 'Programa de e-mail do PC', "window.location.href='mailto:" + enc + "';_fecharMenuEmail()") +
+    item('💻', 'Programa de e-mail do PC', "abrirEscrever(" + JSON.stringify(email).replace(/"/g,'&quot;') + ")") +
     item('📋', 'Copiar endereço', "copiarEmail(" + JSON.stringify(email).replace(/"/g,'&quot;') + ")");
   document.body.appendChild(m);
   setTimeout(function(){ document.addEventListener('click', _fecharMenuEmail); }, 10);
@@ -21149,8 +20760,10 @@ function _copiarFallback(txt) {
   var t = document.createElement('textarea');
   t.value = txt; t.style.position='fixed'; t.style.opacity='0';
   document.body.appendChild(t); t.select();
-  try { document.execCommand('copy'); } catch(e) {}
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch(e) {}
   document.body.removeChild(t);
+  return ok;
 }
 
 function crmToggleSel(email, nome, empresa, setor, marcado) {
@@ -21213,16 +20826,15 @@ function abrirMenuEmailGrupo(ev, emails) {
     return '<div onclick="' + acao + '" style="display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer;border-radius:6px;font-size:12.5px" onmouseover="this.style.background=\'#f4f3ef\'" onmouseout="this.style.background=\'\'">' +
       '<span style="font-size:14px">' + icone + '</span><span>' + texto + '</span></div>';
   };
-  var webmail = (typeof configSistema!=='undefined' && configSistema.webmailUrl) ? configSistema.webmailUrl : 'https://am1.myprofessionalmail.com/appsuite/';
   m.innerHTML =
     '<div style="padding:7px 11px 8px;border-bottom:1px solid #f0ede6;margin-bottom:4px">' +
       '<div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.5px">Enviar para ' + emails.length + ' contato(s)</div>' +
       '<div style="font-size:11px;color:#666;max-height:52px;overflow-y:auto;word-break:break-all">' + esc(emails.join(', ')) + '</div>' +
     '</div>' +
-    item('✉️', 'Professional Mail', "window.open('" + webmail + "#!!&app=io.ox/mail&folder=default0/INBOX&mailto=mailto:" + enc + "','_blank');_fecharMenuEmail()") +
+    item('✉️', 'Professional Mail', "abrirProfessionalMail(" + JSON.stringify(lista).replace(/"/g,'&quot;') + ")") +
     item('📧', 'Abrir no Gmail', "window.open('https://mail.google.com/mail/?view=cm&fs=1&to=" + enc + "','_blank');_fecharMenuEmail()") +
     item('📨', 'Abrir no Outlook web', "window.open('https://outlook.office.com/mail/deeplink/compose?to=" + enc + "','_blank');_fecharMenuEmail()") +
-    item('💻', 'Programa de e-mail do PC', "window.location.href='mailto:" + enc + "';_fecharMenuEmail()") +
+    item('💻', 'Programa de e-mail do PC', "abrirEscrever(" + JSON.stringify(lista).replace(/"/g,'&quot;') + ")") +
     item('📋', 'Copiar todos os endereços', "copiarEmail(" + JSON.stringify(lista).replace(/"/g,'&quot;') + ")") +
     '<div style="border-top:1px solid #f0ede6;margin-top:4px;padding:7px 11px 3px;font-size:10.5px;color:#999">💡 Dica: para não expor os endereços entre si, cole-os em <strong>Cco</strong> no seu e-mail.</div>';
   document.body.appendChild(m);
@@ -21251,14 +20863,18 @@ function _crmLinhaResp(r, empresa, setorLabel) {
   } else {
     chk = '<span style="width:15px;flex-shrink:0"></span>';
   }
-  var mailBtn = r.email
-    ? '<a class="crm-icon-btn crm-icon-mail" href="#" onclick="abrirMenuEmail(event, ' + JSON.stringify(r.email||'').replace(/"/g,'&quot;') + '); return false;" title="Enviar e-mail para ' + esc(r.email) + '">✉️</a>'
-    : '<span class="crm-icon-btn crm-icon-off" title="Sem e-mail cadastrado">✉️</span>';
+  var mailBtn;
+  if (r.email) {
+    var eJson = JSON.stringify(r.email||'').replace(/"/g,'&quot;');
+    mailBtn = '<a class="crm-icon-btn crm-icon-mail" href="#" onclick="abrirMenuEmail(event, ' + eJson + '); return false;" title="Enviar e-mail para ' + esc(r.email) + '">✉️</a>';
+  } else {
+    mailBtn = '<span class="crm-icon-btn crm-icon-off" title="Sem e-mail cadastrado">✉️</span>';
+  }
   var telTxt = r.tel
     ? (wa ? '<a href="' + wa + '" target="_blank" rel="noopener" style="color:#128C7E;text-decoration:none">' + esc(r.tel) + '</a>'
           : '<a href="' + tel + '" style="color:#666;text-decoration:none">' + esc(r.tel) + '</a>')
     : '<span style="color:#ccc">—</span>';
-  var mailTxt = r.email ? ' · <a href="#" onclick="abrirMenuEmail(event, ' + JSON.stringify(r.email||'').replace(/"/g,'&quot;') + '); return false;" style="color:#1a5fa8;text-decoration:none">' + esc(r.email) + '</a>' : '';
+  var mailTxt = r.email ? ' · <a href="#" onclick="abrirMenuEmail(event, ' + JSON.stringify(r.email||'').replace(/"/g,'&quot;') + '); return false;" title="Enviar e-mail para este contato" style="color:#1a5fa8;text-decoration:none">' + esc(r.email) + '</a>' : '';
   return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0 5px 8px">' +
     chk +
     '<div style="font-size:11.5px;line-height:1.45;flex:1">' +
@@ -21548,10 +21164,6 @@ function testarEmailJS() {
     });
 }
 
-/* Botão "+ Novo Lançamento" do Financeiro: abre o formulário da aba aberta.
-   (A função era chamada pelo botão mas nunca existiu — bug de origem.) */
-// v29 — finNovoLancamento removido
-
 function _tarSupervisor() {
   // 1) o que estiver configurado; 2) usuário com login/nome gustavo; 3) e-mail do admin
   var cfg = (configSistema && configSistema.emailConclusaoTarefa) || '';
@@ -21840,7 +21452,7 @@ function _avisarTarefaConcluida(t) {
         <select id="crm-cli-rede" onchange="renderCRMClientes()" style="padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12px;outline:none"><option value="">Todas as redes</option></select>
         <select id="crm-cli-cidade" onchange="renderCRMClientes()" style="padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12px;outline:none"><option value="">Todas as cidades</option></select>
         <span id="crm-cli-contador" style="font-size:11px;color:#888;white-space:nowrap"></span>
-        <button class="btn btn-outline btn-sm" onclick="importarCadastro('clientes', true)" title="Importa uma planilha preenchendo apenas os campos vazios dos clientes já cadastrados. Não sobrescreve dados existentes.">📥 Importar / Complementar</button>
+        <button class="btn btn-outline btn-sm" onclick="importarCadastro('crm')" title="Uma planilha só: cadastro das empresas + responsáveis de cada setor. Nada que já existe é sobrescrito.">📥 Importar CRM</button>
       </div>
       <div id="crm-cli-list" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
     </div>
@@ -21850,7 +21462,7 @@ function _avisarTarefaConcluida(t) {
         <select id="crm-ind-nome" onchange="renderCRMIndustrias()" style="padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12px;outline:none;max-width:190px"><option value="">Todas as indústrias</option></select>
         <select id="crm-ind-cidade" onchange="renderCRMIndustrias()" style="padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12px;outline:none"><option value="">Todas as cidades</option></select>
         <span id="crm-ind-contador" style="font-size:11px;color:#888;white-space:nowrap"></span>
-        <button class="btn btn-outline btn-sm" onclick="importarCadastro('industrias', true)" title="Importa uma planilha preenchendo apenas os campos vazios das indústrias já cadastradas. Não sobrescreve dados existentes.">📥 Importar / Complementar</button>
+        <button class="btn btn-outline btn-sm" onclick="importarCadastro('crm')" title="Uma planilha só: cadastro das empresas + responsáveis de cada setor. Nada que já existe é sobrescrito.">📥 Importar CRM</button>
       </div>
       <div id="crm-ind-list" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
     </div>
@@ -21860,57 +21472,6 @@ function _avisarTarefaConcluida(t) {
 
 
 <!-- ═══ Modais dos módulos — trazido do v29 ═══ -->
-<div class="modal-bg" id="modal-crm-contato">
-      <div class="modal" style="max-width:520px;width:100%">
-        <div class="modal-title">
-          <span id="crm-modal-titulo">Novo Contato</span>
-          <button class="close-btn" onclick="closeModal('modal-crm-contato')">✕</button>
-        </div>
-        <div class="form-group">
-          <label>Nome completo *</label>
-          <input id="crm-c-nome" placeholder="Nome do contato..." style="width:100%">
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Tipo</label>
-            <select id="crm-c-tipo" style="width:100%;padding:8px;border:1px solid var(--cinza-medio);border-radius:6px">
-              <option value="Cliente">Cliente</option>
-              <option value="Indústria">Indústria</option>
-              <option value="Fornecedor">Fornecedor</option>
-              <option value="Transportadora">Transportadora</option>
-              <option value="Outro">Outro</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Cargo / Função</label>
-            <input id="crm-c-cargo" placeholder="Ex: Gerente Comercial..." style="width:100%">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Empresa / Organização</label>
-          <input id="crm-c-empresa" placeholder="Nome da empresa, indústria ou cliente..." style="width:100%">
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Telefone / WhatsApp</label>
-            <input id="crm-c-telefone" placeholder="(00) 00000-0000" style="width:100%">
-          </div>
-          <div class="form-group">
-            <label>E-mail</label>
-            <input id="crm-c-email" type="email" placeholder="email@empresa.com" style="width:100%">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Observações</label>
-          <textarea id="crm-c-obs" placeholder="Notas, negociações, lembretes..." style="width:100%;padding:8px;border:1px solid var(--cinza-medio);border-radius:6px;resize:vertical;font-family:'DM Sans',sans-serif;font-size:13px" rows="2"></textarea>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-          <button class="btn btn-outline" onclick="closeModal('modal-crm-contato')">Cancelar</button>
-          <button class="btn btn-primary" onclick="crmSalvarContato()">Salvar Contato</button>
-        </div>
-      </div>
-    </div>
-
 <div class="modal-bg" id="modal-converter-pendencias">
   <div class="modal" style="max-width:680px;width:100%">
     <div class="modal-title"><span>✅ Gerar tarefas — <span id="cp-ata-titulo">Ata</span></span><button class="close-btn" onclick="closeModal('modal-converter-pendencias')">✕</button></div>
@@ -22053,24 +21614,6 @@ function _avisarTarefaConcluida(t) {
   </div>
 </div>
 
-<div class="modal-bg" id="modal-cb-tipos">
-  <div class="modal" style="max-width:560px;width:100%">
-    <div class="modal-title"><span>&#9881;&#65039; Tipos de movimenta&ccedil;&atilde;o</span><button class="close-btn" onclick="closeModal('modal-cb-tipos')">&#10005;</button></div>
-    <div class="alert alert-info">Cada tipo tem uma <strong>natureza</strong>: Entrada (+), Sa&iacute;da (&minus;) ou Transfer&ecirc;ncia. Ela preenche o campo E/S/T sozinha ao lan&ccedil;ar. Tipos <strong>em uso</strong> n&atilde;o podem ser exclu&iacute;dos.</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <input id="cbt-novo" placeholder="Nome do novo tipo" style="flex:1;min-width:170px;padding:7px 10px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12.5px;outline:none;font-family:'DM Sans',sans-serif">
-      <select id="cbt-novo-es" style="padding:7px 9px;border:1.5px solid var(--cinza-medio);border-radius:6px;font-size:12px">
-        <option value="S">Sa&iacute;da</option><option value="E">Entrada</option><option value="T">Transfer&ecirc;ncia</option>
-      </select>
-      <button class="btn btn-primary btn-sm" onclick="cbAddTipo()">+ Adicionar</button>
-    </div>
-    <div id="cbt-lista" style="max-height:330px;overflow-y:auto;margin-bottom:14px"></div>
-    <div style="display:flex;justify-content:flex-end">
-      <button class="btn btn-outline" onclick="closeModal('modal-cb-tipos')">Fechar</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-bg" id="modal-agrupar-cc">
   <div class="modal" style="max-width:620px;width:100%">
     <div class="modal-title"><span>&#128279; Agrupar contas correntes</span><button class="close-btn" onclick="closeModal('modal-agrupar-cc')">&#10005;</button></div>
@@ -22195,27 +21738,5 @@ function _avisarTarefaConcluida(t) {
   </div>
 </div>
 
-<div class="modal-bg" id="modal-crm">
-  <div class="modal">
-    <div class="modal-title"><span id="crmf-modal-titulo">Nova Conta a Receber</span><button class="close-btn" onclick="closeModal('modal-crm')">✕</button></div>
-    <div class="form-grid">
-      <div class="form-group"><label>Cliente *</label><select id="crm-cli"><option value="">Selecione...</option></select></div>
-      <div class="form-group"><label>Indústria</label><select id="crm-ind"><option value="">Selecione...</option></select></div>
-      <div class="form-group full"><label>Descrição</label><input id="crm-desc" placeholder="Ex: Comissão Janeiro/26, NF 001234..."></div>
-      <div class="form-group"><label>Valor *</label><input type="number" id="crm-valor" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="form-group"><label>NF / Referência</label><input id="crm-nf" placeholder="NF 000001"></div>
-      <div class="form-group"><label>Data de Emissão</label><input type="date" id="crm-emissao"></div>
-      <div class="form-group"><label>Vencimento *</label><input type="date" id="crm-vencimento"></div>
-      <div class="form-group"><label>Status</label>
-        <select id="crm-status-campo"><option>Pendente</option><option>Parcial</option><option>Recebida</option><option>Cancelada</option></select>
-      </div>
-      <div class="form-group full"><label>Observações</label><textarea id="crm-obs" rows="2" placeholder="Notas, condições especiais..."></textarea></div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-outline" onclick="closeModal('modal-crm')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarCRMItem()">💾 Salvar</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
