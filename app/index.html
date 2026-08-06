@@ -1900,7 +1900,11 @@ function renderLogisticaApp(){
     fextra:{campo:'extra',value:FILTROS.extra,options:alertaOpt,titulo:'Situação'},
   };
 
-  // KPIs (antes de filtrar, visão geral)
+  // Filtro de indústria aplicado ANTES dos KPIs, para que os números,
+  // o banner de atrasados e a lista reflitam a indústria escolhida.
+  if(FILTROS.ind) arr = arr.filter(l=>l.industria===FILTROS.ind);
+
+  // KPIs (visão geral da indústria selecionada, antes dos demais filtros)
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const totAtivos = arr.filter(l=>!['Entregue','Finalizado','Cancelado'].includes(l.statusLog)).length;
   const atrasadosAll = arr.filter(_logAtrasado);
@@ -1910,14 +1914,13 @@ function renderLogisticaApp(){
   // Aplica filtros
   if(FILTROS.mes) arr = arr.filter(l=>chaveMes(l.data)===FILTROS.mes);
   if(FILTROS.status) arr = arr.filter(l=>l.statusLog===FILTROS.status);
-  if(FILTROS.ind) arr = arr.filter(l=>l.industria===FILTROS.ind);
   if(FILTROS.extra==='atrasado') arr = arr.filter(_logAtrasado);
   if(FILTROS.extra==='sem-previsao') arr = arr.filter(l=>!l.previsao&&!['Entregue','Finalizado','Cancelado'].includes(l.statusLog));
   if(FILTROS.extra==='hoje') arr = arr.filter(l=>{ if(!l.previsao||['Entregue','Finalizado','Cancelado'].includes(l.statusLog))return false; const pv=new Date(l.previsao+'T00:00:00'); return pv.getTime()===hoje.getTime(); });
   if(q) arr = arr.filter(l=>JSON.stringify(l).toLowerCase().includes(q));
 
   const banner = atrasadosAll.length>0
-    ? `<div class="app-alert a-red big-alert"><span style="font-size:20px">🚨</span> ${atrasadosAll.length} entrega(s) atrasada(s)</div>`
+    ? `<div class="app-alert a-red big-alert"><span style="font-size:20px">🚨</span> ${atrasadosAll.length} entrega(s) atrasada(s)${FILTROS.ind?' — '+esc(FILTROS.ind):''}</div>`
     : '';
   const filtros = filtrosHTML([
     {type:'select',id:'fmes',label:'Mês',value:FILTROS.mes,mes:true,icon:'📅'},
