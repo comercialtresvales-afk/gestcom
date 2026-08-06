@@ -431,8 +431,122 @@ select.ed-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 ════════════════════════════════════════════════ */
 const FALLBACK_DB = {
   dbUrl: 'https://sistematresvales-default-rtdb.firebaseio.com',   // Firebase da Comercial Três Vales
-  apiKey: ''   // banco com regras abertas (.read/.write: true) — sem chave
+  apiKey: ''   // não é mais usada como credencial — quem autoriza é o token do login
 };
+
+/* ════════════════════════════════════════════════
+   FIREBASE AUTHENTICATION (v30)
+   Mesma camada do sistema web. O login passa a valer
+   contra o servidor: sem token, o banco recusa.
+════════════════════════════════════════════════ */
+const FB_API_KEY      = 'AIzaSyC1eaTg2sXqyM9BMHZYJNCwwEydhwdVy6c';
+const DOMINIO_INTERNO = 'tresvales.local';
+
+const FBAUTH = { idToken:null, refreshToken:null, email:null, expiraEm:0, _timer:null };
+
+function _identificadorParaEmail(v){
+  v = (v||'').trim().toLowerCase();
+  if(!v) return '';
+  return v.indexOf('@') > -1 ? v : (v + '@' + DOMINIO_INTERNO);
+}
+
+async function fbAuthLogin(email, senha){
+  try{
+    const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + FB_API_KEY, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password:senha, returnSecureToken:true })
+    });
+    const data = await res.json();
+    if(!res.ok) return { ok:false, erro:_fbAuthErroPtBr(data?.error?.message||'ERRO') };
+    _fbAuthAplicar(data.idToken, data.refreshToken, data.expiresIn, (data.email||'').toLowerCase());
+    return { ok:true };
+  }catch(e){
+    return { ok:false, erro:'Sem conexão com o servidor de login.' };
+  }
+}
+
+function _fbAuthAplicar(idToken, refreshToken, expiresIn, email){
+  FBAUTH.idToken      = idToken;
+  FBAUTH.refreshToken = refreshToken || FBAUTH.refreshToken;
+  if(email) FBAUTH.email = email;
+  FBAUTH.expiraEm = Date.now() + (parseInt(expiresIn||3600,10) * 1000);
+  if(FBAUTH._timer) clearTimeout(FBAUTH._timer);
+  FBAUTH._timer = setTimeout(fbAuthRenovar, Math.max(60000, FBAUTH.expiraEm - Date.now() - 600000));
+}
+
+/* O refreshToken fica salvo no aparelho para o "manter conectado" e a
+   biometria funcionarem — sem ele o app pediria senha a cada abertura. */
+function _fbAuthSalvarSessao(persistente){
+  const pacote = JSON.stringify({ refreshToken:FBAUTH.refreshToken, email:FBAUTH.email });
+  try{
+    if(persistente) localStorage.setItem('gestcom_fbauth', pacote);
+    else { sessionStorage.setItem('gestcom_fbauth', pacote); localStorage.removeItem('gestcom_fbauth'); }
+  }catch(e){}
+}
+
+async function fbAuthRestaurar(){
+  let raw = null;
+  try{ raw = localStorage.getItem('gestcom_fbauth') || sessionStorage.getItem('gestcom_fbauth'); }catch(e){}
+  if(!raw) return false;
+  try{
+    const o = JSON.parse(raw);
+    if(!o.refreshToken) return false;
+    FBAUTH.refreshToken = o.refreshToken;
+    FBAUTH.email = o.email || null;
+    return await fbAuthRenovar();
+  }catch(e){ return false; }
+}
+
+async function fbAuthRenovar(){
+  if(!FBAUTH.refreshToken) return false;
+  try{
+    const res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + FB_API_KEY, {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(FBAUTH.refreshToken)
+    });
+    const data = await res.json();
+    if(!res.ok || !data.id_token) return false;
+    _fbAuthAplicar(data.id_token, data.refresh_token, data.expires_in, null);
+    return true;
+  }catch(e){ return false; }   // provavelmente sem internet → o app cai no cache
+}
+
+function fbAuthLogout(){
+  if(FBAUTH._timer) clearTimeout(FBAUTH._timer);
+  FBAUTH.idToken = FBAUTH.refreshToken = FBAUTH.email = null;
+  FBAUTH.expiraEm = 0;
+  try{ localStorage.removeItem('gestcom_fbauth'); sessionStorage.removeItem('gestcom_fbauth'); }catch(e){}
+}
+
+function _fbAuthErroPtBr(cod){
+  const m = {
+    'EMAIL_NOT_FOUND':'Usuário não cadastrado.',
+    'INVALID_PASSWORD':'Senha incorreta.',
+    'INVALID_LOGIN_CREDENTIALS':'Usuário ou senha incorretos.',
+    'USER_DISABLED':'Este usuário foi desativado.',
+    'INVALID_EMAIL':'Usuário inválido.',
+    'TOO_MANY_ATTEMPTS_TRY_LATER':'Muitas tentativas. Aguarde alguns minutos.',
+  };
+  return m[cod] || ('Falha no login ('+cod+')');
+}
+
+/* Interceptador: injeta o token em toda chamada ao banco. */
+(function(){
+  const _fetchOriginal = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try{
+      let alvo = (typeof input === 'string') ? input : (input && input.url) || '';
+      if(alvo.indexOf('firebaseio.com') > -1 && alvo.indexOf('.json') > -1){
+        const u = new URL(alvo);
+        u.searchParams.delete('auth');
+        if(FBAUTH.idToken) u.searchParams.set('auth', FBAUTH.idToken);
+        const nova = u.toString();
+        if(typeof input === 'string') input = nova; else input = new Request(nova, input);
+      }
+    }catch(e){}
+    return _fetchOriginal(input, init);
+  };
+})();
 
 let RTDB = null;        // {dbUrl, apiKey}
 let DADOS = null;       // payload completo vindo da nuvem (gestcom/dados)
@@ -551,8 +665,7 @@ function carregarRTDB(){
   return false;
 }
 function rtdbUrl(path){
-  const auth = RTDB.apiKey ? `?auth=${RTDB.apiKey}` : '';
-  return `${RTDB.dbUrl}/${path}.json${auth}`;
+  return `${RTDB.dbUrl}/${path}.json`;   // o token é injetado pelo interceptador
 }
 async function puxarDados(){
   if(!RTDB) throw new Error('Sistema não configurado neste aparelho');
@@ -610,10 +723,23 @@ async function fazerLogin(){
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
-  status.textContent = '⏳ Carregando dados da nuvem…';
+  status.textContent = '🔐 Verificando credenciais…';
 
   try{
     if(!RTDB) carregarRTDB();
+
+    // v30 — autentica PRIMEIRO. Com as regras fechadas, qualquer leitura
+    // do banco antes do login volta 401.
+    const rAuth = await fbAuthLogin(_identificadorParaEmail(user), pass);
+    if(!rAuth.ok){
+      err.textContent = rAuth.erro;
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent='ENTRAR'; status.textContent='';
+      return;
+    }
+    _fbAuthSalvarSessao(rememberOn);
+
+    status.textContent = '⏳ Carregando dados da nuvem…';
     if(RTDB){
       try{
         await puxarSeMudou();
@@ -626,16 +752,17 @@ async function fazerLogin(){
       throw new Error('sem-config');
     }
 
+    // A senha já foi validada pelo Firebase. Aqui só buscamos o perfil
+    // e as permissões, casando pelo e-mail autenticado (ou pelo login).
     const usuarios = DADOS?.usuarios || [];
-    const found = usuarios.find(u =>
-      (u.login||'').toLowerCase() === user &&
-      String(u.senha) === String(pass) &&
-      (u.status||'ativo') === 'ativo'
-    );
+    const alvo = (FBAUTH.email||'').toLowerCase();
+    const found = usuarios.find(u => (u.email||'').toLowerCase() === alvo && (u.status||'ativo')==='ativo')
+               || usuarios.find(u => (u.login||'').toLowerCase() === alvo.split('@')[0] && (u.status||'ativo')==='ativo');
 
     if(!found){
-      err.textContent = 'Usuário ou senha incorretos.';
+      err.textContent = 'Autenticado, mas sem cadastro de perfil. Fale com o administrador.';
       err.style.display = 'block';
+      fbAuthLogout();
       btn.disabled = false; btn.textContent='ENTRAR'; status.textContent='';
       return;
     }
@@ -752,6 +879,9 @@ async function loginBiometria(){
     // Biometria confirmada pelo aparelho → carrega dados e entra
     status.textContent = '⏳ Entrando…';
     if(!RTDB) carregarRTDB();
+    // v30 — a digital libera a sessão salva; o token vem do refreshToken guardado.
+    const autenticouBio = await fbAuthRestaurar();
+    if(!autenticouBio) toast('Não consegui renovar a sessão. Se não salvar, entre com a senha.','err');
     try{ if(RTDB) await puxarSeMudou(); else carregarCache(); }
     catch(e){ carregarCache(); }
 
@@ -1283,6 +1413,10 @@ async function salvarRegistro(){
     DADOS[chave].push(obj);
   }
 
+  // Marca timestamp e autor (igual ao web)
+  DADOS._ts = Date.now();
+  DADOS._usuario = usuarioLogado?.login || 'app';
+
   // Grava
   saveBtn.disabled = true;
   const oldTxt = saveBtn.textContent;
@@ -1290,58 +1424,12 @@ async function salvarRegistro(){
 
   try{
     if(RTDB){
-      /* ── v2 — PROTECAO CONTRA SOBRESCRITA ──────────────────────────
-         O PUT substitui o no inteiro. Se o DADOS em memoria estiver
-         velho (alguem salvou pela web depois que o app baixou), o
-         envio apagaria o trabalho dos outros. Aqui relemos a nuvem
-         imediatamente antes de gravar; se mudou, rebaixamos a base
-         fresca e REAPLICAMOS so esta alteracao em cima dela. */
-      let tsLocal = DADOS._ts || 0;
-      let tsRemoto = null;
-      try{
-        const rt = await fetch(rtdbUrl('gestcom/dados/_ts'), {cache:'no-store'});
-        if(rt.ok) tsRemoto = await rt.json();
-      }catch(e){ /* sem rede: segue e deixa o PUT falhar naturalmente */ }
-
-      if(tsRemoto && tsRemoto > tsLocal){
-        // Nuvem mais nova — rebaixa tudo e reaplica a edicao
-        const res0 = await fetch(rtdbUrl('gestcom/dados'), {cache:'no-store'});
-        if(!res0.ok) throw new Error('HTTP '+res0.status);
-        const fresco = await res0.json();
-        if(!fresco) throw new Error('Nuvem vazia');
-
-        if(!Array.isArray(fresco[chave])) fresco[chave] = [];
-        if(editId){
-          const i2 = fresco[chave].findIndex(r=>String(r.id)===String(editId));
-          if(i2 >= 0){
-            fresco[chave][i2] = { ...fresco[chave][i2], ...obj };
-          } else {
-            // registro foi apagado por outro usuario enquanto editava
-            saveBtn.disabled=false; saveBtn.textContent=oldTxt;
-            toast('Este registro foi excluído por outro usuário. Nada foi salvo.','err');
-            return;
-          }
-        } else {
-          fresco[chave].push(obj);   // obj ja recebeu id/criadorPor acima
-        }
-        DADOS = fresco;
-        USERPERMS = DADOS.userPerms || USERPERMS;
-      }
-
-      // Marca timestamp e autor (igual ao web)
-      DADOS._ts = Date.now();
-      DADOS._usuario = usuarioLogado?.login || 'app';
-
       const res = await fetch(rtdbUrl('gestcom/dados'), {
         method:'PUT',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify(DADOS)
       });
       if(!res.ok) throw new Error('HTTP '+res.status);
-    } else {
-      // Sem RTDB: marca timestamp local mesmo assim
-      DADOS._ts = Date.now();
-      DADOS._usuario = usuarioLogado?.login || 'app';
     }
     // atualiza cache local também
     try{ localStorage.setItem('gestcom_cache', JSON.stringify(DADOS)); }catch(e){}
@@ -1934,9 +2022,11 @@ function renderLogisticaApp(){
   const mesesOpt = [{v:'',label:'📅 Todos os meses'}].concat(mesesDisponiveis(arr,'data').map(m=>({v:m,label:rotuloMes(m)})));
   const statusOpt = [{v:'',label:'Todos os status'}].concat(['Pedido Digitado','Pedido Enviado','Em Separação','Faturado','Aguardando Coleta','Em Transporte','Entregue','Finalizado','Cancelado'].map(s=>({v:s,label:s})));
   const alertaOpt = [{v:'',label:'Todas as situações'},{v:'atrasado',label:'⚠️ Só atrasados'},{v:'sem-previsao',label:'❓ Sem previsão'},{v:'hoje',label:'📅 Entrega hoje'}];
+  const indOpt = [{v:'',label:'Todas as indústrias'}].concat([...new Set(arr.map(l=>l.industria).filter(Boolean))].sort().map(i=>({v:i,label:i})));
   _filtroDefs = {
     fmes:{campo:'mes',value:FILTROS.mes,options:mesesOpt,titulo:'Filtrar por mês'},
     fstatus:{campo:'status',value:FILTROS.status,options:statusOpt,titulo:'Filtrar por status'},
+    find:{campo:'ind',value:FILTROS.ind,options:indOpt,titulo:'Filtrar por indústria'},
     fextra:{campo:'extra',value:FILTROS.extra,options:alertaOpt,titulo:'Situação'},
   };
 
@@ -1950,6 +2040,7 @@ function renderLogisticaApp(){
   // Aplica filtros
   if(FILTROS.mes) arr = arr.filter(l=>chaveMes(l.data)===FILTROS.mes);
   if(FILTROS.status) arr = arr.filter(l=>l.statusLog===FILTROS.status);
+  if(FILTROS.ind) arr = arr.filter(l=>l.industria===FILTROS.ind);
   if(FILTROS.extra==='atrasado') arr = arr.filter(_logAtrasado);
   if(FILTROS.extra==='sem-previsao') arr = arr.filter(l=>!l.previsao&&!['Entregue','Finalizado','Cancelado'].includes(l.statusLog));
   if(FILTROS.extra==='hoje') arr = arr.filter(l=>{ if(!l.previsao||['Entregue','Finalizado','Cancelado'].includes(l.statusLog))return false; const pv=new Date(l.previsao+'T00:00:00'); return pv.getTime()===hoje.getTime(); });
@@ -1961,6 +2052,7 @@ function renderLogisticaApp(){
   const filtros = filtrosHTML([
     {type:'select',id:'fmes',label:'Mês',value:FILTROS.mes,mes:true,icon:'📅'},
     {type:'select',id:'fstatus',label:'Status',value:FILTROS.status},
+    {type:'select',id:'find',label:'Indústria',value:FILTROS.ind},
     {type:'select',id:'fextra',label:'Situação',value:FILTROS.extra},
   ]);
   const kpis = [
@@ -2607,6 +2699,7 @@ function logout(){
   if(!confirm('Deseja sair da conta?')) return;
   localStorage.removeItem('gestcom_sessao');
   sessionStorage.removeItem('gestcom_sessao');
+  fbAuthLogout();   // v30 — descarta o token e o refreshToken do aparelho
   usuarioLogado=null;
   document.getElementById('app').style.display='none';
   document.getElementById('login').style.display='flex';
@@ -2642,13 +2735,21 @@ async function boot(){
     try{
       const s = JSON.parse(sess);
       document.getElementById('login-status').textContent='⏳ Reconectando…';
+      // v30 — renova o token salvo antes de falar com o banco. Sem isso a
+      // sessão "manter conectado" não conseguiria mais ler nada.
+      const autenticou = await fbAuthRestaurar();
       // tenta atualizar da nuvem (só baixa tudo se mudou), senão usa cache
       try{ if(RTDB) await puxarSeMudou(); else carregarCache(); }
       catch(e){ carregarCache(); }
 
       const usuarios = DADOS?.usuarios||[];
       const found = usuarios.find(u=>u.id===s.id && (u.status||'ativo')==='ativo');
-      if(found){ usuarioLogado=found; entrarNoApp(); return; }
+      if(found){
+        usuarioLogado=found;
+        entrarNoApp();
+        if(!autenticou) setTimeout(()=>toast('Sessão expirada — dados só de leitura. Saia e entre de novo para salvar.','err'), 1200);
+        return;
+      }
     }catch(e){}
   }
   // pré-preenche último usuário para conveniência
