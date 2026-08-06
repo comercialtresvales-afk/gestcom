@@ -133,10 +133,15 @@ button{cursor:pointer;border:none;background:none;}
 /* ══════════ BOTTOM SHEET ══════════ */
 #sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s;}
 #sheet-backdrop.open{opacity:1;pointer-events:auto;}
-#sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:8px 20px calc(28px + var(--safe-bot));box-shadow:0 -10px 40px rgba(0,0,0,.2);z-index:301;transform:translateY(100%);transition:transform .28s ease;}
+#sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:8px 20px calc(28px + var(--safe-bot));box-shadow:0 -10px 40px rgba(0,0,0,.2);z-index:301;transform:translateY(100%);transition:transform .28s ease;
+  /* Lista longa (ex.: indústrias) não pode estourar a tela — limita a altura e rola por dentro */
+  max-height:85vh;max-height:85dvh;display:flex;flex-direction:column;}
 #sheet.open{transform:translateY(0);}
-.sheet-handle{width:40px;height:4px;background:#ddd;border-radius:4px;margin:6px auto 18px;}
-.sheet-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:16px;text-align:center;}
+.sheet-handle{width:40px;height:4px;background:#ddd;border-radius:4px;margin:6px auto 18px;flex-shrink:0;}
+.sheet-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:16px;text-align:center;flex-shrink:0;}
+.sheet-search{flex-shrink:0;width:100%;background:var(--cinza);border:1px solid var(--cinza-medio);border-radius:12px;padding:12px 14px;font-size:15px;margin-bottom:12px;display:none;}
+#sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:4px;}
+.sheet-empty{text-align:center;color:#999;font-size:12.5px;padding:18px 0;}
 .sheet-opt{display:flex;align-items:center;gap:14px;padding:15px;border-radius:14px;background:var(--cinza);margin-bottom:10px;transition:transform .1s;}
 .sheet-opt:active{transform:scale(.98);}
 .so-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;}
@@ -405,6 +410,7 @@ select.ed-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 <div id="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="sheet-title">Importar / Exportar</div>
+  <input class="sheet-search" id="sheet-search" type="search" placeholder="Buscar..." oninput="filtrarOpcoesSheet()" autocomplete="off">
   <div id="sheet-body"></div>
 </div>
 
@@ -486,6 +492,10 @@ const OCULTAR_HOME = ['crm'];
 /* Sem extras: Sell Out como no site */
 const HOME_EXTRA = [];
 
+/* true  = módulos sem permissão aparecem com cadeado (o usuário vê que existem)
+   false = módulos sem permissão somem da home (comportamento antigo) */
+const MOSTRAR_BLOQUEADOS = true;
+
 function defaultPerms(perfil){
   const allEdit = Object.fromEntries(TODOS_MODULOS.map(m=>[m.key,'editar']));
   const map = {
@@ -524,11 +534,31 @@ function defaultPerms(perfil){
   return Object.fromEntries(TODOS_MODULOS.map(m=>[m.key, base[m.key]||'nenhum']));
 }
 
+/* Normaliza valores vindos da nuvem (o site pode gravar true/'edit'/'view'/1 etc.) */
+function normalizarNivel(v){
+  if(v===true || v===1) return 'editar';
+  if(v===false || v===0 || v==null || v==='') return null;   // null = "não informado"
+  const s = String(v).toLowerCase().trim();
+  if(['editar','edit','total','full','rw','escrita'].includes(s)) return 'editar';
+  if(['ver','view','read','leitura','ro','somente ver'].includes(s)) return 'ver';
+  if(['nenhum','none','bloqueado','no','sem'].includes(s)) return 'nenhum';
+  return null;
+}
+
 function getPerms(userId){
-  // Prioriza permissões granulares salvas na nuvem (userPerms), senão usa padrão do perfil
-  if(USERPERMS[userId]) return USERPERMS[userId];
-  const u = (DADOS?.usuarios||[]).find(x=>x.id===userId);
-  return defaultPerms(u?.perfil || 'representante');
+  const u = (DADOS?.usuarios||[]).find(x=>x.id===userId) || usuarioLogado;
+  const base = defaultPerms(u?.perfil || 'representante');
+  const nuvem = USERPERMS[userId];
+  if(!nuvem) return base;
+  // MESCLA: o que veio da nuvem manda, mas chave ausente/vazia cai no padrão do perfil.
+  // (O Firebase não grava chaves com valor vazio/null, então o objeto costuma vir incompleto —
+  //  antes isso derrubava módulos como Logística para 'nenhum' e sumia da home.)
+  const out = {...base};
+  Object.keys(nuvem).forEach(k=>{
+    const n = normalizarNivel(nuvem[k]);
+    if(n) out[k] = n;
+  });
+  return out;
 }
 function nivelDoModulo(permKey){
   if(!usuarioLogado) return 'nenhum';
@@ -845,18 +875,22 @@ function montarHome(){
 
   combinado.forEach(m=>{
     const nivel = nivelDoModulo(m._perm);
-    if(nivel==='nenhum'){
-      // Mostra bloqueado apenas para perfis de gestão (diretoria/admin veem tudo liberado, então nunca cai aqui).
-      // Para os demais: ocultar. (Decisão: ocultar em vez de cadeado, mais limpo.)
-      return;
-    }
-    visiveis++;
+    const bloqueado = (nivel==='nenhum');
+    if(bloqueado && !MOSTRAR_BLOQUEADOS) return;
+
     const el = document.createElement('div');
-    el.className='mod';
-    el.onclick = ()=>abrirModulo(m);
     let badge='';
-    // badge de contagem para pedidos/orçamentos pendentes
-    if(m.key==='pedidos'){ const n=contarPendentes('pedidos'); if(n>0) badge=`<div class="mod-badge">${n}</div>`; }
+    if(bloqueado){
+      el.className='mod locked';
+      el.onclick = ()=>toast(`"${m.label}" não está liberado para o seu perfil`,'err');
+      badge = `<div class="lock-i">🔒</div>`;
+    } else {
+      visiveis++;
+      el.className='mod';
+      el.onclick = ()=>abrirModulo(m);
+      // badge de contagem para pedidos/orçamentos pendentes
+      if(m.key==='pedidos'){ const n=contarPendentes('pedidos'); if(n>0) badge=`<div class="mod-badge">${n}</div>`; }
+    }
     el.innerHTML = `<div class="mod-ic ${m.cls}">${m.icone}</div><div class="mod-nm">${m.label}</div>${badge}`;
     grid.appendChild(el);
   });
@@ -1533,11 +1567,26 @@ function abrirFiltro(id){
   if(!def) return;
   document.getElementById('sheet-title').textContent = def.titulo || 'Filtrar';
   document.getElementById('sheet-body').innerHTML = def.options.map(o=>`
-    <div class="sheet-opt" onclick="aplicarFiltro('${def.campo}','${esc(String(o.v))}')">
+    <div class="sheet-opt" data-busca="${esc(String(o.label||'').toLowerCase())}" onclick="aplicarFiltro('${def.campo}','${esc(String(o.v))}')">
       <div class="so-ic ${o.v===def.value?'i-yellow':'i-gray'}">${o.v===def.value?'✓':'○'}</div>
       <div class="so-tx"><div class="t">${esc(o.label)}</div></div>
-    </div>`).join('');
-  abrirSheet();
+    </div>`).join('') + `<div class="sheet-empty" id="sheet-empty" style="display:none">Nenhum resultado</div>`;
+  abrirSheet(def.options.length > 8);   // lista longa ganha campo de busca
+}
+
+/* Filtra as opções visíveis do sheet pelo texto digitado */
+function filtrarOpcoesSheet(){
+  const termo = (document.getElementById('sheet-search').value||'').toLowerCase().trim();
+  const opts = document.querySelectorAll('#sheet-body .sheet-opt');
+  let achou = 0;
+  opts.forEach(el=>{
+    const txt = el.dataset.busca || el.textContent.toLowerCase();
+    const ok = !termo || txt.includes(termo);
+    el.style.display = ok ? '' : 'none';
+    if(ok) achou++;
+  });
+  const vazio = document.getElementById('sheet-empty');
+  if(vazio) vazio.style.display = (achou===0 && termo) ? 'block' : 'none';
 }
 function aplicarFiltro(campo, valor){
   FILTROS[campo] = valor;
@@ -2345,7 +2394,16 @@ function openSheetGlobal(){
   abrirSheet();
 }
 
-function abrirSheet(){ document.getElementById('sheet-backdrop').classList.add('open'); document.getElementById('sheet').classList.add('open'); }
+function abrirSheet(comBusca){
+  const busca = document.getElementById('sheet-search');
+  busca.value = '';
+  busca.style.display = comBusca ? 'block' : 'none';
+  const body = document.getElementById('sheet-body');
+  body.scrollTop = 0;                                  // sempre começa do topo
+  body.querySelectorAll('.sheet-opt').forEach(el=>el.style.display='');
+  document.getElementById('sheet-backdrop').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
 function closeSheet(){ document.getElementById('sheet-backdrop').classList.remove('open'); document.getElementById('sheet').classList.remove('open'); }
 
 function exportarModulo(){
