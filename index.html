@@ -1,13 +1,11 @@
+
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GestCom — Comercial Três Vales v5</title>
-<!-- lz-string 1.5.0 — compressão do armazenamento local (MIT License, Pieroxy) -->
-<script>
-var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -1232,11 +1230,11 @@ tr:last-child td{border-bottom:none;}
       <div class="version">GestCom v5 · Sistema Comercial</div>
     </div>
     <div class="login-err" id="login-err">Usuário ou senha incorretos.</div>
-    <div class="form-group"><label>Usuário ou e-mail</label><input id="login-user" type="text" placeholder="seu.usuario" autocomplete="username" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+    <div class="form-group"><label>Usuário</label><input id="login-user" type="text" placeholder="seu.usuario" autocomplete="username" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
     <div class="form-group"><label>Senha</label><input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
     <button class="btn btn-primary" id="btn-entrar" style="width:100%;justify-content:center;padding:10px" onclick="fazerLogin()">Entrar</button>
     <div id="login-sync-status" style="text-align:center;margin-top:8px;font-size:11px;color:#f5c500;min-height:16px;display:none">⏳ Carregando dados da nuvem…</div>
-    <div style="text-align:center;margin-top:8px;font-size:11px;color:#555">Acesso protegido por Firebase Authentication</div>
+    <div style="text-align:center;margin-top:8px;font-size:11px;color:#555">Login padrão: <strong style="color:#fff">admin</strong> / <strong style="color:#fff">admin123</strong></div>
     <div style="text-align:center;margin-top:10px">
       <button onclick="recuperarAcesso()" style="background:none;border:none;color:#888;font-size:11px;cursor:pointer;text-decoration:underline;font-family:inherit">🔑 Esqueci minha senha / Recuperar acesso</button>
     </div>
@@ -1889,8 +1887,6 @@ tr:last-child td{border-bottom:none;}
           <option>Jul/25</option><option>Ago/25</option><option>Set/25</option>
           <option>Out/25</option><option>Nov/25</option><option>Dez/25</option>
         </select>
-        <button class="btn btn-outline btn-sm" onclick="auditarPrazosComissoes()"
-          title="Conferir como o mês de previsão foi calculado em cada comissão">🔍 Auditar prazos</button>
       </div>
 
       <!-- KPIs comissões -->
@@ -4096,9 +4092,7 @@ let logisticaData = [];
 let sellOutData = [];
 
 let usuarios = [
-  // v30 — a senha saiu daqui: quem valida credencial agora e o Firebase Auth.
-  // O campo `email` precisa bater com a conta criada em Authentication → Users.
-  {id:'USR-001',nome:'Administrador',login:'admin',senha:'',perfil:'diretoria',email:'',status:'ativo',ultimoAcesso:'—'},
+  {id:'USR-001',nome:'Administrador',login:'admin',senha:'admin123',perfil:'diretoria',email:'',status:'ativo',ultimoAcesso:'—'},
 ];
 
 let usuarioLogado = null;
@@ -4484,227 +4478,9 @@ function _mixExpandir(arr) {
   });
 }
 
-/* ══ v29.1 — SALVAMENTO VERIFICADO ═══════════════════════════════════════
-   Antes: se o localStorage recusasse a gravação (cota cheia, storage
-   bloqueado, aba anônima, arquivo aberto por um app que não guarda dados),
-   o erro virava apenas um console.warn. O usuário continuava lançando
-   informações achando que estavam salvas — e perdia tudo ao recarregar.
-   Agora TODA gravação é relida e conferida. Se falhar, aparece um aviso
-   fixo na tela e o diagnóstico fica disponível.                          */
-/* ══ v29.3 — MESCLAGEM POR REGISTRO (uso simultâneo) ════════════════════════
-   O envio grava a base INTEIRA de uma vez. Com 3 pessoas usando ao mesmo
-   tempo, quem enviava por último apagava o trabalho dos outros. Agora cada
-   registro carrega a data da sua última alteração (_upd) e as duas bases são
-   COMBINADAS registro a registro: vence sempre a versão mais recente de cada
-   um, não a base inteira mais recente.
-   Exclusões ficam registradas em _tomb (lápides) para que um registro apagado
-   num aparelho não volte à vida vindo da cópia do outro.                    */
-var _COLECOES_MESCLAVEIS = ['pedidos','orcamentos','comissoes_data','clientes','industrias',
-  'redes','logisticaData','tratativas','bonificacoesData','metasData','tarefasData',
-  'atasData','contaCorrenteData'];
-
-window._tomb = window._tomb || {};   // {colecao: {chave: timestampDaExclusao}}
-var _snapReg = null;                 // retrato da última gravação, para detectar mudanças
-
-function _colGet(n){
-  switch(n){
-    case 'pedidos': return typeof pedidos!=='undefined'?pedidos:null;
-    case 'orcamentos': return typeof orcamentos!=='undefined'?orcamentos:null;
-    case 'comissoes_data': return typeof comissoes_data!=='undefined'?comissoes_data:null;
-    case 'clientes': return typeof clientes!=='undefined'?clientes:null;
-    case 'industrias': return typeof industrias!=='undefined'?industrias:null;
-    case 'redes': return typeof redes!=='undefined'?redes:null;
-    case 'logisticaData': return typeof logisticaData!=='undefined'?logisticaData:null;
-    case 'tratativas': return typeof tratativas!=='undefined'?tratativas:null;
-    case 'bonificacoesData': return typeof bonificacoesData!=='undefined'?bonificacoesData:null;
-    case 'metasData': return typeof metasData!=='undefined'?metasData:null;
-    case 'tarefasData': return typeof tarefasData!=='undefined'?tarefasData:null;
-    case 'atasData': return typeof atasData!=='undefined'?atasData:null;
-    case 'contaCorrenteData': return typeof contaCorrenteData!=='undefined'?contaCorrenteData:null;
-  }
-  return null;
-}
-function _colSet(n, v){
-  switch(n){
-    case 'pedidos': pedidos=v; return;
-    case 'orcamentos': orcamentos=v; return;
-    case 'comissoes_data': comissoes_data=v; return;
-    case 'clientes': clientes=v; return;
-    case 'industrias': industrias=v; return;
-    case 'redes': redes=v; return;
-    case 'logisticaData': logisticaData=v; return;
-    case 'tratativas': tratativas=v; return;
-    case 'bonificacoesData': bonificacoesData=v; return;
-    case 'metasData': metasData=v; return;
-    case 'tarefasData': tarefasData=v; return;
-    case 'atasData': atasData=v; return;
-    case 'contaCorrenteData': contaCorrenteData=v; return;
-  }
-}
-
-/* Chave estável de cada registro. Sem chave, não há mesclagem segura. */
-function _chaveReg(col, r){
-  if(!r || typeof r!=='object') return null;
-  if(r.id !== undefined && r.id !== null && r.id !== '') return 'i:'+r.id;
-  if(col==='logisticaData' && r.pedId) return 'p:'+r.pedId;
-  if(r.nome) return 'n:'+r.nome;
-  if(r.cod)  return 'c:'+r.cod;
-  return null;
-}
-
-function _sigReg(r){
-  try { return JSON.stringify(r, function(k,v){ return k==='_upd' ? undefined : v; }); }
-  catch(e){ return null; }
-}
-
-/* Refaz o retrato sem marcar nada como alterado.
-   Chamado depois de carregar do aparelho ou de receber da nuvem. */
-function _resetSnapshot(){
-  _snapReg = {};
-  _COLECOES_MESCLAVEIS.forEach(function(col){
-    var arr = _colGet(col); var m = {};
-    if(Array.isArray(arr)) arr.forEach(function(r){
-      var k=_chaveReg(col,r); if(k) m[k]=_sigReg(r);
-    });
-    _snapReg[col] = m;
-  });
-}
-
-/* Carimba _upd nos registros que mudaram e registra lápides dos excluídos. */
-function _marcarAlteracoes(){
-  var agora = Date.now();
-  if(!_snapReg){ _resetSnapshot(); return; }   // primeira vez: nada a comparar
-  _COLECOES_MESCLAVEIS.forEach(function(col){
-    var arr = _colGet(col); if(!Array.isArray(arr)) return;
-    var antes = _snapReg[col] || {};
-    var agoraMap = {};
-    arr.forEach(function(r){
-      var k=_chaveReg(col,r); if(!k) return;
-      var sig=_sigReg(r);
-      agoraMap[k]=sig;
-      if(antes[k] === undefined || antes[k] !== sig) r._upd = agora;   // novo ou editado
-    });
-    Object.keys(antes).forEach(function(k){
-      if(agoraMap[k] === undefined){                                    // sumiu = excluído aqui
-        if(!window._tomb[col]) window._tomb[col] = {};
-        window._tomb[col][k] = agora;
-      }
-    });
-    _snapReg[col] = agoraMap;
-  });
-  _podarTombs();
-}
-
-/* Lápides com mais de 120 dias não são mais necessárias. */
-function _podarTombs(){
-  var limite = Date.now() - 120*24*60*60*1000;
-  Object.keys(window._tomb||{}).forEach(function(col){
-    var m = window._tomb[col];
-    Object.keys(m).forEach(function(k){ if(m[k] < limite) delete m[k]; });
-    if(!Object.keys(m).length) delete window._tomb[col];
-  });
-}
-
-function _mesclarTombs(tombRemoto){
-  if(!tombRemoto || typeof tombRemoto!=='object') return;
-  Object.keys(tombRemoto).forEach(function(col){
-    if(!window._tomb[col]) window._tomb[col] = {};
-    var m = tombRemoto[col]; if(!m || typeof m!=='object') return;
-    Object.keys(m).forEach(function(k){
-      if(!window._tomb[col][k] || m[k] > window._tomb[col][k]) window._tomb[col][k] = m[k];
-    });
-  });
-}
-
-/* Combina a lista local com a da nuvem, registro a registro. */
-function _mesclarColecao(col, loc, rem, tombRemoto){
-  if(!Array.isArray(rem)) return loc;
-  if(!Array.isArray(loc) || loc.length===0) return rem;
-  var tl = (window._tomb && window._tomb[col]) || {};
-  var tr = (tombRemoto && tombRemoto[col]) || {};
-  var mapL={}, mapR={}, ordem=[], seguro=true;
-  loc.forEach(function(r){ var k=_chaveReg(col,r); if(!k){seguro=false;return;} if(!(k in mapL)) ordem.push(k); mapL[k]=r; });
-  rem.forEach(function(r){ var k=_chaveReg(col,r); if(!k){seguro=false;return;} if(!(k in mapL) && !(k in mapR)) ordem.push(k); mapR[k]=r; });
-  if(!seguro) return rem;   // algum registro sem chave: mantém o comportamento antigo
-  var out=[];
-  ordem.forEach(function(k){
-    var a=mapL[k], b=mapR[k];
-    var ua=(a&&a._upd)||0, ub=(b&&b._upd)||0;
-    if(a && !b){ if((tr[k]||0) > ua) return; out.push(a); return; }   // excluído no outro aparelho
-    if(b && !a){ if((tl[k]||0) > ub) return; out.push(b); return; }   // excluído aqui
-    out.push(ua > ub ? a : b);                                        // empate: fica o da nuvem
-  });
-  return out;
-}
-
-/* Aplica a mesclagem em todas as coleções de uma vez. */
-function _mesclarBaseDaNuvem(dados){
-  _mesclarTombs(dados._tomb);
-  _COLECOES_MESCLAVEIS.forEach(function(col){
-    if(!Array.isArray(dados[col])) return;
-    var loc = _colGet(col);
-    var res = _mesclarColecao(col, loc, dados[col], dados._tomb);
-    if(col==='tratativas') res = res.map(function(t){ var o={notas:[]}; for(var x in t) o[x]=t[x]; return o; });
-    _colSet(col, res);
-    dados[col] = res;   // evita que a atribuição direta seguinte desfaça a mesclagem
-  });
-  _podarTombs();
-}
-
-/* ── Chave e utilitários de compressão do armazenamento local (v29.2) ──
-   Os dados passam a ser gravados comprimidos na chave 'gestcom_dados_z'.
-   A chave antiga ('gestcom_dados', sem compressão) continua sendo LIDA para
-   não perder nada de quem já usava o sistema — e é apagada no primeiro
-   salvamento novo, liberando espaço.                                        */
-var _CHAVE_DADOS = 'gestcom_dados_z';
-
-function _lzOk() { return typeof LZString !== 'undefined' && LZString && typeof LZString.compressToUTF16 === 'function'; }
-
-function _comprimirPacote(txt) {
-  if (!_lzOk()) return txt;                 // sem a biblioteca: grava puro
-  try { return '\u0001LZ' + LZString.compressToUTF16(txt); } catch(e) { return txt; }
-}
-
-function _descomprimirPacote(txt) {
-  if (!txt) return null;
-  if (txt.charAt(0) !== '\u0001') return txt;   // gravado sem compressão
-  if (!_lzOk()) return null;
-  try { return LZString.decompressFromUTF16(txt.slice(3)); } catch(e) { return null; }
-}
-
-/* Devolve o JSON (texto) da cópia local, venha ela da chave nova ou da antiga */
-function _lerPacoteLocalRaw() {
-  var t = null;
-  try { t = localStorage.getItem(_CHAVE_DADOS); } catch(e) {}
-  if (t) { var d = _descomprimirPacote(t); if (d) return d; }
-  try { return localStorage.getItem('gestcom_dados'); } catch(e) { return null; }
-}
-
-window._diagSalvar = {ok:null, ts:0, bytes:0, erro:'', nuvemOk:null, nuvemErro:'', nuvemTs:0};
-
-function _bannerPersistencia(msg) {
-  var id = 'banner-falha-salvar';
-  var b = document.getElementById(id);
-  if (!msg) { if (b) b.remove(); return; }
-  if (!b) {
-    b = document.createElement('div');
-    b.id = id;
-    b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#c0392b;color:#fff;'
-      + 'font-family:sans-serif;font-size:13px;line-height:1.4;padding:10px 14px;display:flex;gap:10px;'
-      + 'align-items:center;justify-content:center;text-align:center;box-shadow:0 -2px 12px rgba(0,0,0,.3)';
-    document.body.appendChild(b);
-  }
-  b.innerHTML = '<span>' + msg + '</span>'
-    + '<button onclick="diagSalvamento()" style="background:#fff;color:#c0392b;border:0;border-radius:5px;'
-    + 'padding:6px 10px;font-weight:700;cursor:pointer;flex-shrink:0">🩺 Diagnóstico</button>';
-}
-
 function _salvarLocal() {
-  var _tsAgora = Date.now();
-  var payload;
-  try { _marcarAlteracoes(); } catch(e) { console.warn('[GestCom] marcação de alterações:', e.message); }
   try {
-    payload = JSON.stringify({
+    const payload = JSON.stringify({
       pedidos, orcamentos, orcamentosExcluidos, clientes, industrias, redes, comissoes_data,
       logisticaData, sellOutData, metasData, regrasComerciais, tratativas,
       PRODUTOS_CAT, mixProdutos: _mixComprimir(mixProdutos), bonificacoesData, usuarios, userPerms,
@@ -4712,62 +4488,25 @@ function _salvarLocal() {
       ctrlSaldosData, ctrlSaldosHistorico,
       tarefasData, atasData, setoresCustom, contaCorrenteData, ccContas, ccContasCadastradas,
       modulosConfig, modulosCustom, userAcoes,
-      _tomb: (window._tomb||{}),
-      _ts: _tsAgora
+      _ts: Date.now()
     });
+    localStorage.setItem('gestcom_dados', payload);
   } catch(e) {
-    window._diagSalvar.ok = false;
-    window._diagSalvar.erro = 'Falha ao preparar os dados: ' + e.message;
-    _bannerPersistencia('⚠️ ERRO AO PREPARAR OS DADOS — nada foi gravado neste navegador.');
-    console.warn('[GestCom] Falha ao serializar:', e);
-    return;
-  }
-  try {
-    /* v29.2 — GRAVAÇÃO COMPRIMIDA
-       O navegador reserva ~5 MB por site e conta cada caractere como 2 bytes:
-       na prática cabiam só ~2,5 milhões de caracteres. A base já passava disso
-       e TODA gravação era recusada. Comprimindo (LZ), os mesmos dados ocupam
-       cerca de 5% do espaço — e ainda sobra folga para anos de lançamentos. */
-    var _grav = _comprimirPacote(payload);
-    try {
-      localStorage.setItem(_CHAVE_DADOS, _grav);
-    } catch(_e1) {
-      /* Espaço ainda ocupado pela base ANTIGA sem compressão (até ~5 MB).
-         Ela já foi lida para a memória no início da sessão, então pode sair:
-         libera o espaço e tenta gravar de novo. */
-      try { localStorage.removeItem('gestcom_dados'); } catch(_) {}
-      localStorage.setItem(_CHAVE_DADOS, _grav);
+    if(e.name === 'QuotaExceededError') {
+      console.warn('[GestCom] ⚠ localStorage cheio — exporte os dados e considere limpar registros antigos.');
+      // v28 — antes falhava em silencio: o usuario so descobria ao perder tudo.
+      try {
+        var _m = '⚠️ ARMAZENAMENTO CHEIO — os dados NÃO foram salvos neste navegador! Vá em Sincronização e envie para a nuvem.';
+        if(typeof toast === 'function') toast(_m); else console.error(_m);
+      } catch(_) {}
     }
-    try { localStorage.removeItem('gestcom_dados'); } catch(_) {}   // cópia antiga não é mais necessária
-    // ── Conferência: relê e descomprime o que acabou de ser gravado ──
-    var _back = _lerPacoteLocalRaw();
-    if (!_back) throw new Error('a leitura de conferência voltou vazia');
-    if (JSON.parse(_back)._ts !== _tsAgora) throw new Error('o dado relido não confere com o gravado');
-    window._diagSalvar.ok        = true;
-    window._diagSalvar.ts        = _tsAgora;
-    window._diagSalvar.bytes     = payload.length;
-    window._diagSalvar.gravados  = _grav.length;
-    window._diagSalvar.comprimido = _grav !== payload;
-    window._diagSalvar.erro  = '';
-    _bannerPersistencia(null);
-  } catch(e) {
-    window._diagSalvar.ok    = false;
-    window._diagSalvar.bytes = payload.length;
-    window._diagSalvar.erro  = (e.name||'Erro') + ': ' + e.message;
-    var motivo;
-    if (e.name === 'QuotaExceededError' || /quota|exceeded/i.test(e.message||''))
-      motivo = 'ARMAZENAMENTO CHEIO — o navegador recusou a gravação ('
-             + Math.round(payload.length/1024) + ' KB de dados). Exporte um backup e apague registros antigos.';
     else
-      motivo = 'o navegador BLOQUEOU a gravação local (' + e.message + ').';
-    _bannerPersistencia('⚠️ OS DADOS NÃO ESTÃO SENDO SALVOS NESTE APARELHO — ' + motivo
-      + ' Envie para a nuvem ou exporte antes de fechar a página.');
-    console.warn('[GestCom] Falha ao salvar local:', e);
+      console.warn('[GestCom] Erro localStorage:', e.message);
   }
 }
 function _carregarLocal() {
   try {
-    const raw = _lerPacoteLocalRaw();
+    const raw = localStorage.getItem('gestcom_dados');
     if(!raw) return false;
     const d = JSON.parse(raw);
     if(Array.isArray(d.pedidos))          pedidos          = d.pedidos;
@@ -4827,8 +4566,6 @@ function _carregarLocal() {
         logisticaData.push({pedId:p.id,cliente:p.cliente,industria:p.industria,
           data:p.data,transportadora:'',previsao:'',dataEntrega:'',statusLog:'Pedido Digitado',obs:''});
     });
-    if(d._tomb && typeof d._tomb==='object') { window._tomb = d._tomb; _podarTombs(); }
-    try { _resetSnapshot(); } catch(e) {}
     console.info('[GestCom] ✓ Dados locais restaurados (' + new Date(d._ts||0).toLocaleTimeString('pt-BR') + ')');
     return true;
   } catch(e) {
@@ -6734,54 +6471,28 @@ function _addDias(date, n) {
 // ─── Utilitário: converte prazo "30D", "30/60D", "30+60", "DPC", "DDL" etc. → dias totais ─
 function _parsePrazoDias(prazoStr) {
   if(!prazoStr) return 0;
-  var s = String(prazoStr).toUpperCase().replace(/\s+/g,'');
+  const s = String(prazoStr).replace(/\s/g,'').toUpperCase();
 
-  // ── À vista ────────────────────────────────────────────────────────────────
-  if(/^(A?VISTA|AV|CV|CONTADO|DINHEIRO|PIX)$/.test(s)) return 0;
-
-  // ── Termos especiais (prazo combinado, sem número explícito) ───────────────
-  // DPC = Depósito Por Conta · DDL = Dia De Liquidação · DDU = Dia Útil
-  // Só valem quando o número vem GRUDADO no termo (DPC60, DDL30). Códigos de
-  // cliente como "DPC-MZ3" não podem ser lidos como "3 dias".
-  var mEsp = s.match(/^(DPC|DDL|DDU)(\d+)/);
-  if(mEsp) return parseInt(mEsp[2]);
-
-  /* ── Parcelado no formato NxM (ex.: "3X30" = 30/60/90 → último vence em 90)
-     v29.4: antes isso caía no ramo genérico e virava 0.                      */
-  var mX = s.match(/(?:^|[^A-Z0-9])(\d+)X(\d+)(?![0-9])/);
-  if(mX) return parseInt(mX[1]) * parseInt(mX[2]);
-
-  /* ── Números "soltos": aceita 90, 90D, "90DIAS", "30/60/90", "28+56+84",
-     "PRAZO90DIAS". Um número colado depois de LETRA que não seja início de
-     token (ex.: o "3" de "MZ3") é ignorado — é código, não prazo.
-     v29.4: antes só números puros ou terminados em "D" eram entendidos;
-     qualquer outra escrita virava 0 e a comissão caía no mês seguinte à NF. */
-  /* Palavras que só descrevem o prazo viram separador, para que "PRAZO90DIAS"
-     seja lido como 90 sem que o "3" de um código como "MZ3" seja confundido. */
-  s = s.replace(/PRAZO|DIAS?|VENC(?:IMENTO)?|BOLETO|PARCELAD[OA]|PARCELAS?|FATURA|APOS|EM/g, '/');
-
-  var nums = [];
-  var re = /(?:^|[^A-Z0-9])(\d+)/g, m;
-  while((m = re.exec(s)) !== null) {
-    var n = parseInt(m[1]);
-    if(n > 0 && n <= 720) nums.push(n);   // acima de 2 anos é ano, CNPJ, etc.
+  // ── Termos especiais de prazo (sem número) ──────────────────────────────────
+  // DPC  = Depósito Por Conta / prazo combinado com indústria → padrão 60 dias
+  // DDL  = Dia De Liquidação / data-específica → padrão 30 dias
+  // DDU  = Dia Útil → padrão 30 dias
+  // VISTA / AV / CV = À vista → 0 dias (fatura no mês seguinte à NF, como Faturamento)
+  if(/^DPC/.test(s)) {
+    // Tenta extrair número após DPC, ex: "DPC60" ou "DPC 60" → 60; senão usa 60 padrão
+    const m = s.match(/DPC(\d+)/);
+    return m ? parseInt(m[1]) : 60;
   }
-  if(nums.length === 0) {
-    // termo especial sem número nenhum: usa o padrão histórico
-    if(/^DPC/.test(s)) return 60;
-    if(/^DD[LU]/.test(s)) return 30;
-    return 0;
-  }
-  // Múltiplas parcelas: vale o ÚLTIMO vencimento
-  return Math.max.apply(null, nums);
-}
+  if(/^DDL/.test(s)) { const m = s.match(/DDL(\d+)/); return m ? parseInt(m[1]) : 30; }
+  if(/^DDU/.test(s)) { const m = s.match(/DDU(\d+)/); return m ? parseInt(m[1]) : 30; }
+  if(/^(VISTA|AV|CV|AVISTA)$/.test(s)) return 0;
 
-/* Explica em texto como o prazo foi interpretado — usado na auditoria. */
-function _explicaPrazo(prazoStr) {
-  var d = _parsePrazoDias(prazoStr);
-  if(!prazoStr) return {dias:d, nota:'sem condição cadastrada'};
-  if(d === 0)  return {dias:0, nota:'entendido como À VISTA (nenhum prazo reconhecido)'};
-  return {dias:d, nota:d + ' dias'};
+  // Remove sufixo D no final, ex: "60D" → "60", "30/60D" → "30/60"
+  const clean = s.endsWith('D') ? s.slice(0,-1) : s;
+  // Múltiplas parcelas: pega o MAIOR prazo (último vencimento)
+  const partes = clean.split(/[\/\+,]/).map(Number).filter(n=>!isNaN(n)&&n>0);
+  if(partes.length === 0) return 0;
+  return Math.max(...partes);
 }
 
 // ─── Utilitário: formata Date → "Mmm/AA" (ex: "Abr/26") ─────────────────────
@@ -6822,130 +6533,6 @@ function _calcMesPrevisaoComissao(dataNF, tipoCom, prazoCliente) {
     const dRec = _addMeses(dNF, 1);
     return _dateToMesLabel(dRec);
   }
-}
-
-/* ── Qual REGRA COMERCIAL vale para esta comissão ───────────────────────────
-   Mesma ordem de prioridade usada ao gerar a comissão no faturamento:
-   regra do cliente > regra da rede > regra global da indústria.            */
-function _regraDaComissao(c, ped, cliCad) {
-  var rede = (cliCad && cliCad.rede) || '';
-  var ind  = (ped && ped.industria) || c.industria;
-  var cli  = (ped && ped.cliente)   || c.cliente;
-  var rc = regrasComerciais.find(function(r){ return r.ativo && (r.industria==='Todas'||r.industria===ind) && r.cliente===cli; });
-  if(rc) return {regra: rc, origem: 'Regra do cliente'};
-  if(rede) {
-    var rr = regrasComerciais.find(function(r){ return r.ativo && (r.industria==='Todas'||r.industria===ind) && r.rede===rede; });
-    if(rr) return {regra: rr, origem: 'Regra da rede ' + rede};
-  }
-  var rg = regrasComerciais.find(function(r){ return r.ativo && (r.industria==='Todas'||r.industria===ind) && (r.cliente==='Todos'||!r.cliente) && !r.rede; });
-  if(rg) return {regra: rg, origem: 'Regra global da indústria'};
-  return {regra: null, origem: 'nenhuma regra cadastrada'};
-}
-
-/* Prazo que vale: regra > condição do pedido > cadastro do cliente. */
-function _prazoDaComissao(c, ped, cliCad) {
-  var r = _regraDaComissao(c, ped, cliCad).regra;
-  if(r && r.prazo)           return {prazo: r.prazo,      origem: 'Regra Comercial'};
-  if(ped && ped.cond)        return {prazo: ped.cond,     origem: 'Condição do pedido'};
-  if(cliCad && cliCad.prazo) return {prazo: cliCad.prazo, origem: 'Cadastro do cliente'};
-  return {prazo: '', origem: 'nenhuma origem'};
-}
-
-/* Tipo que vale: regra > tipoCom da indústria > Faturamento (padrão final). */
-function _tipoDaComissao(c, ped, cliCad) {
-  var rr  = _regraDaComissao(c, ped, cliCad);
-  var ind = (ped && ped.industria) || c.industria;
-  var indCad = industrias.find(function(i){ return i.nome===ind || i.id===ind; });
-  if(rr.regra && rr.regra.tipo) return {tipo: rr.regra.tipo, origem: rr.origem};
-  if(indCad && indCad.tipoCom)  return {tipo: indCad.tipoCom, origem: 'Cadastro da indústria ' + ind};
-  return {tipo: 'Faturamento', origem: indCad ? 'PADRÃO — indústria ' + ind + ' sem tipo definido'
-                                              : 'PADRÃO — indústria ' + ind + ' não cadastrada'};
-}
-
-/* ── AUDITORIA DE TIPO E PRAZO ──────────────────────────────────────────────
-   Mostra, comissão por comissão, de onde saiu o tipo (Faturamento/Liquidez)
-   e o mês de previsão — comparando com o que está gravado.                  */
-function auditarPrazosComissoes() {
-  var ov = document.getElementById('overlay-audit-prazo');
-  if(ov) ov.remove();
-  ov = document.createElement('div');
-  ov.id = 'overlay-audit-prazo';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;'
-    + 'align-items:center;justify-content:center;padding:16px;font-family:sans-serif';
-  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
-
-  var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var linhas = [], difTipo = 0, difMes = 0;
-
-  comissoes_data.filter(function(c){ return !c.excluido; }).forEach(function(c){
-    var ped    = pedidos.find(function(p){ return p.id === c.pedido; });
-    var cliCad = clientes.find(function(cl){ return cl.nome === c.cliente || cl.id === c.cliente; });
-    var tp     = _tipoDaComissao(c, ped, cliCad);
-    var pz     = _prazoDaComissao(c, ped, cliCad);
-    var exp    = _explicaPrazo(pz.prazo);
-    var dataNF = (ped && ped.nf && ped.nf.data) || (ped && ped.data) || c.dataNF || '';
-    // mês esperado calculado com o tipo CORRETO, não com o tipo gravado
-    var esperado = dataNF ? _calcMesPrevisaoComissao(dataNF, tp.tipo, pz.prazo) : '—';
-    var venc = '—';
-    if(dataNF && tp.tipo === 'Liquidez' && exp.dias > 0) {
-      var p = String(dataNF).split(/[-\/T]/);
-      var dNF = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]||1));
-      var dV = _addDias(dNF, exp.dias);
-      venc = ('0'+dV.getDate()).slice(-2)+'/'+meses[dV.getMonth()]+'/'+(dV.getFullYear()+'').slice(2);
-    }
-    var errTipo = tp.tipo !== c.tipo;
-    var errMes  = esperado !== '—' && esperado !== c.mesPrevisao;
-    if(errTipo) difTipo++;
-    if(errMes)  difMes++;
-    var vermelho = ';color:#c0392b;font-weight:700';
-    linhas.push({peso:(errTipo?2:0)+(errMes?1:0), html:
-      '<tr style="background:' + (errTipo||errMes ? '#fff4f4' : 'transparent') + '">'
-      + '<td style="padding:4px 6px;font-family:monospace;font-size:11px">' + c.id + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px">' + esc(c.cliente) + '<br><span style="color:#888">' + esc(c.industria) + '</span></td>'
-      + '<td style="padding:4px 6px;font-size:11px' + (errTipo?vermelho:'') + '">' + (c.tipo||'—') + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px' + (errTipo?';color:#1a7f37;font-weight:700':'') + '">' + tp.tipo + '</td>'
-      + '<td style="padding:4px 6px;font-size:10px;color:#666">' + esc(tp.origem) + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px">' + (dataNF||'—') + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px"><b>' + esc(pz.prazo||'—') + '</b><br><span style="color:#888">' + pz.origem + '</span></td>'
-      + '<td style="padding:4px 6px;font-size:11px' + (exp.dias===0 ? ';color:#c0392b' : '') + '">' + exp.nota + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px">' + venc + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px' + (errMes?vermelho:'') + '">' + (c.mesPrevisao||'—') + '</td>'
-      + '<td style="padding:4px 6px;font-size:11px' + (errMes?';color:#1a7f37;font-weight:700':'') + '"><b>' + esperado + '</b></td>'
-      + '</tr>'});
-  });
-
-  linhas.sort(function(a,b){ return b.peso - a.peso; });
-
-  var resumo;
-  if(!difTipo && !difMes) resumo = 'Nenhuma divergência: tipo e mês conferem com o que está cadastrado.';
-  else {
-    resumo = '<b style="color:#c0392b">' + difTipo + ' com TIPO divergente · ' + difMes + ' com MÊS divergente</b>. ';
-    resumo += 'Quando a origem do tipo aparece como "PADRÃO", não existe regra nem tipo na indústria — '
-            + 'o sistema assume Faturamento. Nesse caso a correção é no cadastro da indústria ou numa Regra Comercial '
-            + 'para o cliente, não no recálculo.';
-  }
-
-  ov.innerHTML = '<div style="background:#fff;border-radius:10px;max-width:1250px;width:100%;max-height:88vh;'
-    + 'overflow:auto;padding:18px 20px;color:#222">'
-    + '<div style="font-size:15px;font-weight:700;margin-bottom:4px">🔍 Auditoria de tipo e prazo das comissões</div>'
-    + '<div style="font-size:12px;color:#666;margin-bottom:10px">' + resumo + '</div>'
-    + '<table style="width:100%;border-collapse:collapse;font-size:11px">'
-    + '<thead><tr style="background:#f4f3ef;text-align:left">'
-    + ['Comissão','Cliente / Indústria','Tipo gravado','Tipo esperado','De onde vem o tipo','Data NF',
-       'Condição / origem','Dias lidos','Vencimento','Mês gravado','Mês esperado']
-        .map(function(h){ return '<th style="padding:5px 6px;font-size:11px">'+h+'</th>'; }).join('')
-    + '</tr></thead><tbody>' + linhas.map(function(l){ return l.html; }).join('') + '</tbody></table>'
-    + '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
-    + '<button onclick="recalcularTipoTodasComissoes();auditarPrazosComissoes()" '
-      + 'style="background:#1a1a1a;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer">'
-      + '🔁 Recalcular TIPO e auditar de novo</button>'
-    + '<button onclick="recalcularMesPrevisaoTodasComissoes();auditarPrazosComissoes()" '
-      + 'style="background:#1a1a1a;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer">'
-      + '🔄 Recalcular MÊS e auditar de novo</button>'
-    + '<button onclick="document.getElementById(\'overlay-audit-prazo\').remove()" '
-      + 'style="background:#eee;color:#333;border:0;border-radius:6px;padding:8px 12px;cursor:pointer">Fechar</button>'
-    + '</div></div>';
-  document.body.appendChild(ov);
 }
 
 function gerarComissaoAuto(ped, baseLiq) {
@@ -8099,10 +7686,7 @@ function recalcularMesPrevisaoTodasComissoes() {
     verificadas++;
     const ped    = pedidos.find(p => p.id === c.pedido);
     const cliCad = clientes.find(cl => cl.nome === c.cliente || cl.id === c.cliente);
-    /* v29.4 — mesma prioridade usada ao registrar a NF: regra comercial vence.
-       Antes o recálculo usava só a condição do pedido e podia devolver um mês
-       diferente do que o próprio sistema calculou no faturamento. */
-    const prazo  = _prazoDaComissao(c, ped, cliCad).prazo;
+    const prazo  = ped?.cond || cliCad?.prazo || '';
     const dataNF = ped?.nf?.data || ped?.data || c.dataNF || new Date();
     const novoMes = _calcMesPrevisaoComissao(dataNF, c.tipo, prazo);
     if(novoMes === c.mesPrevisao) return c;
@@ -12422,29 +12006,32 @@ function fazerLogin() {
       return;
     }
 
-    // v30 — a SENHA nao e mais conferida aqui. Quem valida a senha e o
-    // Firebase Auth (fbAuthLogin). O array `usuarios` passa a servir
-    // apenas para perfil e permissoes, casado pelo e-mail autenticado.
+    // Tenta encontrar o usuário nos dados já carregados
     const _tentarEntrar = () => {
-      const alvo = (FBAUTH.email||'').trim().toLowerCase();
-
-      let usr = usuarios.find(u => (u.email||'').trim().toLowerCase() === alvo);
-      // Compatibilidade: cadastros antigos que so tem `login` preenchido
-      if(!usr) usr = usuarios.find(u => (u.login||'').trim().toLowerCase() === alvo.split('@')[0]);
+      // Busca por login OU por e-mail (resolve problema de autocomplete no PC que preenche com e-mail)
+      const usr = usuarios.find(u =>
+        ((u.login||'').trim().toLowerCase() === login ||
+         (u.email||'').trim().toLowerCase() === login) &&
+        (u.senha||'').trim() === senha &&
+        (u.status||'').toLowerCase() === 'ativo'
+      );
 
       if(!usr) {
+        // Diagnóstico: verifica se existe o usuário mas a senha está errada
+        const usrExiste = usuarios.find(u =>
+          (u.login||'').trim().toLowerCase() === login ||
+          (u.email||'').trim().toLowerCase() === login
+        );
         if(errEl) {
-          errEl.textContent = 'Autenticado, mas sem cadastro de perfil para "' + alvo.split('@')[0] +
-                              '". Peca ao administrador para conferir o cadastro em Usuarios.';
+          if(usrExiste && (usrExiste.status||'').toLowerCase() !== 'ativo') {
+            errEl.textContent = 'Usuário inativo. Contate o administrador do sistema.';
+          } else {
+            errEl.textContent = 'Usuário ou senha incorretos. (Use admin / admin123 para acesso padrão)';
+          }
           errEl.style.display = 'block';
+        } else {
+          alert('Usuário ou senha incorretos.');
         }
-        fbAuthLogout();
-        senhaEl.value = '';
-        return;
-      }
-      if((usr.status||'').toLowerCase() !== 'ativo') {
-        if(errEl) { errEl.textContent = 'Usuario inativo. Contate o administrador do sistema.'; errEl.style.display='block'; }
-        fbAuthLogout();
         senhaEl.value = '';
         return;
       }
@@ -12505,40 +12092,38 @@ function fazerLogin() {
       } catch(e) {}
     };
 
-    // ── v30: AUTENTICA PRIMEIRO, SO DEPOIS BAIXA A NUVEM ──────────
-    // A ordem importa: com as regras fechadas (auth != null), qualquer
-    // leitura do banco antes do login volta 401.
-    (async () => {
+    // ECONOMIA DE BANDA: NÃO baixa a base inteira de novo aqui.
+    // autoConectarFirebase() (no carregamento da página) já trouxe a nuvem.
+    // Em vez de re-baixar ~5MB a cada login, checamos só o _ts (poucos bytes);
+    // se a nuvem estiver mais nova que o que já temos, aí sim baixamos.
+    if(configSync.conectado && configSync.dbUrl) {
       const btnEl = document.getElementById('btn-entrar');
       const stEl  = document.getElementById('login-sync-status');
-      const _liberar = () => {
-        if(btnEl) { btnEl.disabled = false; btnEl.textContent = 'Entrar'; }
-        if(stEl)  stEl.style.display = 'none';
-      };
-
-      if(btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳ Autenticando…'; }
-      if(stEl)  { stEl.textContent = '🔐 Verificando credenciais…'; stEl.style.display = 'block'; }
-
-      const r = await fbAuthLogin(_identificadorParaEmail(login), senha);
-      if(!r.ok) {
-        _liberar();
-        if(errEl) { errEl.textContent = r.erro; errEl.style.display = 'block'; }
-        senhaEl.value = '';
-        return;
-      }
-
-      if(stEl) stEl.textContent = '⏳ Carregando dados da nuvem…';
-      if(btnEl) btnEl.textContent = '⏳ Carregando…';
-      try {
-        await autoConectarFirebase();
-      } catch(e) {
-        console.warn('[Login] Falha ao carregar a nuvem:', e.message);
-      }
-
-      // aplicarDadosDaNuvem roda num setTimeout(300) la dentro; esperamos
-      // um pouco mais para que o array `usuarios` ja esteja atualizado.
-      setTimeout(() => { _liberar(); _tentarEntrar(); }, 500);
-    })();
+      if(btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳ Verificando…'; }
+      if(stEl)  { stEl.textContent = '⏳ Verificando dados da nuvem…'; stEl.style.display = 'block'; }
+      fetch(configSync.dbUrl.replace(/\/$/, '') + '/gestcom/dados/_ts.json' + (configSync.apiKey ? '?auth=' + configSync.apiKey : ''))
+        .then(r => r.ok ? r.json() : null)
+        .then(tsRemoto => {
+          if(tsRemoto && tsRemoto > (_rtdbLastTs||0)) {
+            // Só nesse caso vale baixar a base completa
+            return fetch(configSync.dbUrl.replace(/\/$/, '') + '/gestcom/dados.json' + (configSync.apiKey ? '?auth=' + configSync.apiKey : ''))
+              .then(r => r.ok ? r.json() : null)
+              .then(dados => { if(dados){ aplicarDadosDaNuvem(dados, true, true); _rtdbLastTs = dados._ts || Date.now(); } });
+          }
+        })
+        .then(() => {
+          if(btnEl) { btnEl.disabled = false; btnEl.textContent = 'Entrar'; }
+          if(stEl)  stEl.style.display = 'none';
+          _tentarEntrar();
+        })
+        .catch(() => {
+          if(btnEl) { btnEl.disabled = false; btnEl.textContent = 'Entrar'; }
+          if(stEl)  stEl.style.display = 'none';
+          _tentarEntrar();
+        });
+    } else {
+      _tentarEntrar();
+    }
 
   } catch(err) {
     alert('Erro inesperado no login: ' + err.message + '\n\nAbra o console do navegador (F12) para mais detalhes.');
@@ -12550,7 +12135,6 @@ function fazerLogout() {
   if(confirm('Deseja realmente sair do sistema?')) {
     addAudit(usuarioLogado?.login||'?', 'Logout do sistema', '🚪');
     usuarioLogado = null;
-    fbAuthLogout();   // v30 — invalida o token; sem ele nada mais le nem grava
     el('login-user').value=''; el('login-pass').value='';
     el('login-err').style.display='none';
     el('login-screen').classList.remove('hidden');
@@ -12559,36 +12143,28 @@ function fazerLogout() {
   }
 }
 
-/* v30 — Antes esta funcao redefinia o admin para admin/admin123 e gravava
-   a senha em texto puro no banco. Isso era uma porta dos fundos: bastava
-   clicar para virar diretoria. Agora a recuperacao passa pelo Firebase,
-   que envia um e-mail de redefinicao para o proprio dono da conta. */
-async function recuperarAcesso() {
-  const _digitado = (el('login-user')?.value||'').trim().toLowerCase();
-  if(!_digitado) {
-    alert('Digite primeiro o seu usuario ou e-mail no campo acima e clique novamente.');
-    return;
+function recuperarAcesso() {
+  if(!confirm(
+    '🔑 RECUPERAR ACESSO\n\n' +
+    'Isso irá redefinir o usuário administrador para:\n' +
+    '  Usuário: admin\n' +
+    '  Senha: admin123\n\n' +
+    'Todos os seus dados (pedidos, clientes, comissões etc.) serão PRESERVADOS.\n\n' +
+    'Deseja continuar?'
+  )) return;
+  // Garante que o admin padrão existe com senha resetada, sem apagar outros usuários
+  const idx = usuarios.findIndex(u => u.perfil === 'diretoria' || u.login === 'admin');
+  const adminReset = {id:'USR-001', nome:'Administrador', login:'admin', senha:'admin123', perfil:'diretoria', email:'', status:'ativo', ultimoAcesso:'—'};
+  if(idx >= 0) {
+    usuarios[idx] = {...usuarios[idx], ...adminReset};
+  } else {
+    usuarios.unshift(adminReset);
   }
-  if(_digitado.indexOf('@') < 0) {
-    alert('🔑 RECUPERAR ACESSO\n\nO usuario "' + _digitado + '" nao tem e-mail real cadastrado, ' +
-          'entao nao da para enviar o link de redefinicao.\n\n' +
-          'Peca ao administrador para redefinir sua senha em:\n' +
-          'Firebase Console → Authentication → Users → ⋮ → Redefinir senha.');
-    return;
-  }
-  const _email = _digitado;
-  if(!confirm('🔑 RECUPERAR ACESSO\n\nEnviaremos um link de redefinicao de senha para:\n  ' + _email + '\n\nDeseja continuar?')) return;
-  try {
-    const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + FB_API_KEY, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ requestType:'PASSWORD_RESET', email:_email })
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(_fbAuthErroPtBr(data?.error?.message||'ERRO'));
-    alert('✅ E-mail enviado!\n\nVerifique a caixa de entrada de ' + _email + ' (e o spam).');
-  } catch(e) {
-    alert('Nao foi possivel enviar: ' + e.message + '\n\nO administrador tambem pode redefinir pelo Firebase Console → Authentication → Users.');
-  }
+  _salvarLocal();
+  el('login-user').value = 'admin';
+  el('login-pass').value = 'admin123';
+  el('login-err').style.display = 'none';
+  alert('✅ Acesso recuperado!\n\nUse:\n  Usuário: admin\n  Senha: admin123\n\nClique em Entrar.');
 }
 
 function aplicarVisibilidadeSidebar() {
@@ -14847,151 +14423,10 @@ function syncHabilitarBotoes(sim) {
 }
 
 // ── URL base para REST calls ──
-/* ══════════════════════════════════════════════════════
-   FIREBASE AUTHENTICATION (v30)
-   ------------------------------------------------------
-   Antes: o navegador falava direto com o Realtime Database
-   sem se identificar, e as regras estavam abertas (.read/.write
-   = true). Qualquer pessoa com a URL lia e gravava.
-
-   Agora: o login acontece contra o Firebase Auth, que devolve
-   um idToken valido por 1h. Esse token vai em TODA chamada ao
-   banco (via interceptador de fetch abaixo), e as regras passam
-   a exigir "auth != null".
-
-   A apiKey abaixo e publica por design — ela so identifica o
-   projeto. Quem concede acesso e o token, que e individual.
-══════════════════════════════════════════════════════ */
-const FB_API_KEY = 'AIzaSyC1eaTg2sXqyM9BMHZYJNCwwEydhwdVy6c';
-
-/* O Firebase Auth exige identificador em formato de e-mail, mas nunca
-   verifica se o endereco existe. Entao quem preferir logar so com o nome
-   de usuario ("admin") tem o dominio interno completado automaticamente
-   ("admin@tresvales.local"). A senha continua sendo validada no servidor
-   do Google — o formato do identificador nao afeta a seguranca.
-
-   Quem tiver e-mail real digita o e-mail completo e ele e usado como esta;
-   so esses conseguem redefinir a senha sozinhos, por e-mail. */
-const DOMINIO_INTERNO = 'tresvales.local';
-
-function _identificadorParaEmail(v) {
-  v = (v||'').trim().toLowerCase();
-  if(!v) return '';
-  return v.indexOf('@') > -1 ? v : (v + '@' + DOMINIO_INTERNO);
-}
-
-const FBAUTH = {
-  idToken: null,
-  refreshToken: null,
-  email: null,
-  localId: null,
-  expiraEm: 0,          // timestamp ms
-  _timer: null,
-};
-
-/* Login: e-mail + senha contra o Firebase Auth.
-   Retorna {ok:true} ou {ok:false, erro:'mensagem em pt-BR'} */
-async function fbAuthLogin(email, senha) {
-  try {
-    const res = await fetch(
-      'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + FB_API_KEY,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ email, password: senha, returnSecureToken: true }) }
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      const cod = data?.error?.message || 'ERRO';
-      return { ok:false, erro: _fbAuthErroPtBr(cod) };
-    }
-    FBAUTH.idToken      = data.idToken;
-    FBAUTH.refreshToken = data.refreshToken;
-    FBAUTH.email        = (data.email||'').toLowerCase();
-    FBAUTH.localId      = data.localId;
-    FBAUTH.expiraEm     = Date.now() + (parseInt(data.expiresIn||3600,10) * 1000);
-    _fbAuthAgendarRenovacao();
-    return { ok:true };
-  } catch(e) {
-    return { ok:false, erro:'Falha de conexao com o servidor de autenticacao: ' + e.message };
-  }
-}
-
-/* O token expira em 1h. Sem renovacao o sistema pararia de salvar
-   no meio do expediente — por isso renovamos aos 50 minutos. */
-function _fbAuthAgendarRenovacao() {
-  if (FBAUTH._timer) clearTimeout(FBAUTH._timer);
-  const faltam = Math.max(60*1000, FBAUTH.expiraEm - Date.now() - (10*60*1000));
-  FBAUTH._timer = setTimeout(fbAuthRenovar, faltam);
-}
-
-async function fbAuthRenovar() {
-  if (!FBAUTH.refreshToken) return false;
-  try {
-    const res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + FB_API_KEY, {
-      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(FBAUTH.refreshToken)
-    });
-    const data = await res.json();
-    if (!res.ok || !data.id_token) throw new Error(data?.error?.message||'falha');
-    FBAUTH.idToken      = data.id_token;
-    FBAUTH.refreshToken = data.refresh_token || FBAUTH.refreshToken;
-    FBAUTH.expiraEm     = Date.now() + (parseInt(data.expires_in||3600,10) * 1000);
-    _fbAuthAgendarRenovacao();
-    console.log('[Auth] Token renovado.');
-    return true;
-  } catch(e) {
-    console.warn('[Auth] Nao foi possivel renovar o token:', e.message);
-    try { toast('Sua sessao expirou. Entre novamente para continuar salvando.', 'error'); } catch(_) {}
-    return false;
-  }
-}
-
-function fbAuthLogout() {
-  if (FBAUTH._timer) clearTimeout(FBAUTH._timer);
-  FBAUTH.idToken = FBAUTH.refreshToken = FBAUTH.email = FBAUTH.localId = null;
-  FBAUTH.expiraEm = 0;
-}
-
-function _fbAuthErroPtBr(cod) {
-  const m = {
-    'EMAIL_NOT_FOUND'         : 'E-mail nao cadastrado. Fale com o administrador.',
-    'INVALID_PASSWORD'        : 'Senha incorreta.',
-    'INVALID_LOGIN_CREDENTIALS':'E-mail ou senha incorretos.',
-    'USER_DISABLED'           : 'Este usuario foi desativado no Firebase.',
-    'INVALID_EMAIL'           : 'E-mail invalido. Digite o endereco completo.',
-    'TOO_MANY_ATTEMPTS_TRY_LATER':'Muitas tentativas. Aguarde alguns minutos.',
-    'MISSING_PASSWORD'        : 'Digite a senha.',
-  };
-  return m[cod] || ('Falha no login (' + cod + ')');
-}
-
-/* ── INTERCEPTADOR DE FETCH ────────────────────────────
-   O sistema tem ~10 pontos que chamam o Realtime Database,
-   varios montando a URL na mao. Em vez de editar um por um
-   (e correr o risco de esquecer algum, o que quebraria o
-   salvamento silenciosamente), interceptamos o fetch: toda
-   URL do firebaseio.com recebe o token atual automaticamente.
-────────────────────────────────────────────────────── */
-(function _instalarInterceptadorAuth(){
-  const _fetchOriginal = window.fetch.bind(window);
-  window.fetch = function(input, init) {
-    try {
-      let alvo = (typeof input === 'string') ? input : (input && input.url) || '';
-      if (alvo.indexOf('firebaseio.com') > -1 && alvo.indexOf('.json') > -1) {
-        const u = new URL(alvo);
-        u.searchParams.delete('auth');          // remove a apiKey usada antes
-        if (FBAUTH.idToken) u.searchParams.set('auth', FBAUTH.idToken);
-        const nova = u.toString();
-        if (typeof input === 'string') input = nova;
-        else input = new Request(nova, input);
-      }
-    } catch(e) { /* nunca deixa o interceptador derrubar a chamada */ }
-    return _fetchOriginal(input, init);
-  };
-})();
-
 function rtdbUrl(path) {
   const base = configSync.dbUrl.replace(/\/$/, '');
-  return `${base}/${path}.json`;   // o token e injetado pelo interceptador
+  const auth = configSync.apiKey ? `?auth=${configSync.apiKey}` : '';
+  return `${base}/${path}.json${auth}`;
 }
 
 // ── Conectar e testar ──
@@ -15092,7 +14527,6 @@ function coletarDadosParaSync() {
     modulosConfig:      JSON.parse(JSON.stringify(typeof modulosConfig!=='undefined'?modulosConfig:{})),
     modulosCustom:      JSON.parse(JSON.stringify(typeof modulosCustom!=='undefined'?modulosCustom:[])),
     userAcoes:          JSON.parse(JSON.stringify(typeof userAcoes!=='undefined'?userAcoes:{})),
-    _tomb:    JSON.parse(JSON.stringify(window._tomb||{})),
     _ts:      Date.now(),
     _usuario: usuarioLogado?.login || 'sistema',
   };
@@ -15102,24 +14536,9 @@ function aplicarDadosDaNuvem(dados, silencioso=false, forcado=false) {
   if(!dados) return;
   // Só bloqueia pelo timestamp se for polling automático (não forçado)
   if(!forcado && dados._ts && dados._ts <= (_rtdbLastTs||0)) return;
-  /* v29.2 — TRAVA CONTRA SOBRESCRITA POR CÓPIA ANTIGA
-     A sincronização grava a base INTEIRA de uma vez. Se outro aparelho estava
-     com uma cópia velha na tela e enviou, a base dele substituía a sua — e o
-     lançamento recém-feito sumia. Agora, se a última gravação local for mais
-     recente que o pacote da nuvem, o local vence e é reenviado. */
-  var _tsLocal = (window._diagSalvar && window._diagSalvar.ok && window._diagSalvar.ts) || 0;
-  if(!forcado && _tsLocal && dados._ts && dados._ts < _tsLocal) {
-    console.warn('[GestCom] Pacote da nuvem mais ANTIGO que a alteração local — ignorado e reenviado.');
-    try { syncPush(true); } catch(e) {}
-    try { toast('☁️ Uma cópia desatualizada chegou da nuvem e foi ignorada — seus lançamentos foram mantidos.','warning'); } catch(e) {}
-    return;
-  }
   // Bloqueia loop: ignora dados enviados por mim mesmo há menos de 3s (apenas em polling)
   if(!forcado && dados._usuario === usuarioLogado?.login && Date.now()-dados._ts < 3000) return;
   _rtdbLastTs = dados._ts || Date.now();
-  /* v29.3 — combina registro a registro ANTES de qualquer substituição direta.
-     Sem isto, a base da nuvem simplesmente apagava o que foi feito aqui. */
-  try { _mesclarBaseDaNuvem(dados); } catch(e) { console.warn('[GestCom] mesclagem:', e.message); }
   if(Array.isArray(dados.pedidos)) pedidos = dados.pedidos;
   if(Array.isArray(dados.orcamentos)) orcamentos = dados.orcamentos;
   // Une a lista de excluídos vinda da nuvem (exclusão feita em qualquer aparelho vale para todos)
@@ -15168,7 +14587,6 @@ const _loginAtual = usuarioLogado?.login;
     usuarios = dados.usuarios;
     if(_usrAtual && !usuarios.find(u=>u.login===_loginAtual)) usuarios.push(_usrAtual);
   }
-  try { _resetSnapshot(); } catch(e) {}
   if(!silencioso) {
     ['renderPedidos','renderFaturamento','renderComissoes','renderSaldo','renderLogistica',
      'renderDashboard','renderClientes','renderIndustrias','renderRedes','renderOrcamentos',
@@ -15194,14 +14612,8 @@ async function syncPush(silencioso=false){
     if(!res.ok)throw new Error('HTTP '+res.status);
     _rtdbLastPushSig = _sig;
     _rtdbLastTs=dados._ts;
-    // v29.1 — registra o resultado real do envio (antes o erro sumia no silencioso)
-    window._diagSalvar.nuvemOk = true; window._diagSalvar.nuvemTs = dados._ts; window._diagSalvar.nuvemErro = '';
     if(!silencioso){syncLog('✅ Enviado','success');feedbackFb('Sincronizado!','success');}
-  }catch(e){
-    window._diagSalvar.nuvemOk = false; window._diagSalvar.nuvemErro = e.message;
-    console.warn('[GestCom] Envio para a nuvem falhou:', e.message);
-    if(!silencioso){syncLog('❌ '+e.message,'error');feedbackFb('Erro: '+e.message,'danger');}
-  }
+  }catch(e){if(!silencioso){syncLog('❌ '+e.message,'error');feedbackFb('Erro: '+e.message,'danger');}}
 }
 async function syncPull(silencioso){
   if(!configSync.conectado||!configSync.dbUrl) return;
@@ -15233,14 +14645,8 @@ function ativarPollingRealtime(){
         // Revalida: o usuário pode ter excluído algo enquanto o fetch estava em voo
         if(_pushPendente) return;
         if(dados && dados._ts && dados._ts > (_rtdbLastTs||0)) {
-          /* v29.2 — antes aplicava em SILÊNCIO: as telas continuavam mostrando
-             os dados antigos e a troca só aparecia ao mudar de página, dando a
-             impressão de que o lançamento tinha sumido. Agora redesenha na hora
-             e avisa quem enviou. */
-          var _quemEnviou = dados._usuario || 'outro usuário';
-          aplicarDadosDaNuvem(dados, false);
+          aplicarDadosDaNuvem(dados, true);
           _rtdbLastTs = dados._ts;
-          try { toast('☁️ Dados atualizados da nuvem (enviados por ' + _quemEnviou + ')','info'); } catch(e) {}
           syncLog('Dados atualizados da nuvem (ts: '+new Date(dados._ts).toLocaleTimeString('pt-BR')+')', 'ok');
         }
       }
@@ -15261,13 +14667,8 @@ try{renderLogistica();}catch(e){}
 try{renderSaldo();}catch(e){}
 try{renderRedes();}catch(e){}
 try{popularSelectsDinamicos();}catch(e){}
-/* CARGA DA NUVEM — v30
-   Antes isto rodava sozinho no carregamento da pagina, porque o
-   array `usuarios` (necessario pro login) morava na nuvem e o banco
-   era publico. Com as regras fechadas essa leitura seria negada.
-   Agora a funcao continua a mesma, mas so e chamada DEPOIS que o
-   fazerLogin() autentica no Firebase e ja existe um token valido. */
-async function autoConectarFirebase() {
+// AUTO-CONEXÃO: conecta ao Firebase automaticamente em qualquer dispositivo
+(async function autoConectarFirebase() {
   try {
     const saved = localStorage.getItem('gestcom_rtdb');
     if (saved) {
@@ -15294,7 +14695,7 @@ async function autoConectarFirebase() {
           // registro excluído de volta. Comparamos os timestamps e, se o local
           // for mais novo, mantemos o local e reenviamos para a nuvem.
           let tsLocal = 0;
-          try { const _rl = JSON.parse(_lerPacoteLocalRaw()||'{}'); tsLocal = _rl._ts || 0; } catch(e) {}
+          try { const _rl = JSON.parse(localStorage.getItem('gestcom_dados')||'{}'); tsLocal = _rl._ts || 0; } catch(e) {}
           const tsNuvem = dados._ts || 0;
           if (tsLocal && tsNuvem && tsLocal > tsNuvem) {
             // Local vence: não sobrescreve os registros. Mas ainda assim absorve a
@@ -15329,20 +14730,6 @@ async function autoConectarFirebase() {
     if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Entrar'; }
     console.warn('[GestCom] Auto-conexão Firebase falhou:', e.message);
   }
-}
-
-/* No carregamento da pagina apenas preparamos a configuracao —
-   nenhuma leitura do banco acontece antes do login. */
-(function _prepararConfigSync(){
-  try {
-    const saved = localStorage.getItem('gestcom_rtdb');
-    if (saved) {
-      const obj = JSON.parse(saved);
-      if (obj.dbUrl) { configSync.dbUrl = obj.dbUrl.replace(/\/$/,''); configSync.realtime = obj.realtime !== false; }
-    }
-  } catch(e) {}
-  if (!configSync.dbUrl) configSync.dbUrl = 'https://sistematresvales-default-rtdb.firebaseio.com';
-  configSync.apiKey = '';   // a apiKey nao serve mais como credencial do banco
 })();
 
 /* ══════════════════════════════════════════════════════
@@ -22352,151 +21739,5 @@ function _avisarTarefaConcluida(t) {
   </div>
 </div>
 
-
-<script>
-/* ══ v29.1 — DIAGNÓSTICO DE SALVAMENTO ══════════════════════════════════
-   Mostra, em linguagem direta: o navegador está aceitando gravar? o que
-   está gravado no aparelho neste momento? o que está na nuvem? Serve para
-   descobrir POR QUE um lançamento some.                                  */
-function _diagFmtBytes(n){ return n>1048576 ? (n/1048576).toFixed(2)+' MB' : Math.round(n/1024)+' KB'; }
-
-function _diagTesteStorage(){
-  try {
-    var k='__gestcom_teste__'+Date.now();
-    localStorage.setItem(k,'1');
-    var v=localStorage.getItem(k);
-    localStorage.removeItem(k);
-    return v==='1' ? {ok:true} : {ok:false, erro:'gravou mas não releu'};
-  } catch(e){ return {ok:false, erro:(e.name||'Erro')+': '+e.message}; }
-}
-
-function _diagUsoTotal(){
-  var total=0;
-  try { for(var k in localStorage){ if(Object.prototype.hasOwnProperty.call(localStorage,k)) total += (localStorage.getItem(k)||'').length + k.length; } } catch(e){}
-  return total;
-}
-
-async function diagSalvamento(){
-  var ov = document.getElementById('overlay-diag-salvar');
-  if(ov) ov.remove();
-  ov = document.createElement('div');
-  ov.id = 'overlay-diag-salvar';
-  ov.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;'
-    +'align-items:center;justify-content:center;padding:16px;font-family:sans-serif';
-  ov.innerHTML='<div id="diag-box" style="background:#fff;border-radius:10px;max-width:640px;width:100%;'
-    +'max-height:88vh;overflow:auto;padding:18px 20px;font-size:13px;line-height:1.5;color:#222"></div>';
-  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
-  document.body.appendChild(ov);
-  var box = document.getElementById('diag-box');
-  box.innerHTML = '<div style="color:#888">🔄 Verificando…</div>';
-
-  var linhas = [];
-  var add = function(ok, txt){ linhas.push('<div style="padding:5px 0;border-bottom:1px solid #eee">'
-    + (ok===null?'⏺':(ok?'✅':'❌')) + ' ' + txt + '</div>'); };
-
-  // 1) O navegador aceita gravar?
-  var t = _diagTesteStorage();
-  add(t.ok, t.ok ? '<b>Gravação neste navegador:</b> permitida'
-                 : '<b>Gravação neste navegador: BLOQUEADA</b> — ' + t.erro
-                   + '<br><span style="color:#c0392b">Causas comuns: aba anônima/privada, arquivo aberto dentro de um aplicativo (WhatsApp, Gmail, Arquivos) em vez do navegador, ou navegador configurado para apagar dados ao fechar.</span>');
-
-  // 2) Último salvamento
-  var d = window._diagSalvar || {};
-  if(d.ok === true)      add(true,  '<b>Último salvamento local:</b> OK às ' + new Date(d.ts).toLocaleTimeString('pt-BR')
-                                   + ' — ' + _diagFmtBytes(d.bytes) + ' de dados'
-                                   + (d.comprimido ? ' gravados em apenas ' + _diagFmtBytes(d.gravados)
-                                       + ' <span style="color:#2a7">(compressão ativa)</span>'
-                                       : ' <span style="color:#b7791f">(sem compressão)</span>'));
-  else if(d.ok === false)add(false, '<b>Último salvamento local: FALHOU</b> — ' + d.erro);
-  else                   add(null,  '<b>Último salvamento local:</b> nenhuma gravação nesta sessão ainda');
-
-  // 3) Espaço usado
-  var uso = _diagUsoTotal();
-  add(uso < 2000000, '<b>Espaço usado no navegador:</b> ' + _diagFmtBytes(uso)
-      + ' (o limite prático é cerca de 2,5 milhões de caracteres)'
-      + (uso >= 2000000 ? ' <span style="color:#c0392b">— perto do limite! Exporte um backup e apague registros antigos.</span>' : ''));
-
-  // 4) O que está REALMENTE gravado no aparelho
-  try {
-    var raw = _lerPacoteLocalRaw();
-    if(!raw) add(false, '<b>Cópia no aparelho:</b> nenhuma — nada foi gravado até agora');
-    else {
-      var g = JSON.parse(raw);
-      var cg = Array.isArray(g.comissoes_data) ? g.comissoes_data.filter(function(c){return !c.excluido;}) : [];
-      var recG = cg.filter(function(c){return c.status==='Recebida';}).length;
-      var parcG = cg.filter(function(c){return c.status==='Parcial';}).length;
-      add(true, '<b>Cópia gravada no aparelho</b> (' + new Date(g._ts||0).toLocaleString('pt-BR') + '):<br>'
-        + (g.pedidos||[]).length + ' pedidos · ' + cg.length + ' comissões · <b>' + recG + ' Recebida(s)</b> · ' + parcG + ' Parcial(is)');
-    }
-  } catch(e){ add(false, '<b>Cópia no aparelho:</b> ilegível — ' + e.message); }
-
-  // 5) O que está na memória agora (tela)
-  try {
-    var cm = comissoes_data.filter(function(c){return !c.excluido;});
-    add(true, '<b>Na tela agora:</b> ' + pedidos.length + ' pedidos · ' + cm.length + ' comissões · <b>'
-      + cm.filter(function(c){return c.status==='Recebida';}).length + ' Recebida(s)</b> · '
-      + cm.filter(function(c){return c.status==='Parcial';}).length + ' Parcial(is)');
-  } catch(e){}
-
-  // 6) Nuvem
-  add(!!configSync.conectado, '<b>Nuvem:</b> ' + (configSync.conectado ? 'conectada' : 'desconectada')
-      + (d.nuvemOk === false ? ' <span style="color:#c0392b">— último envio FALHOU: ' + d.nuvemErro + '</span>'
-      : d.nuvemOk === true ? ' — último envio OK às ' + new Date(d.nuvemTs).toLocaleTimeString('pt-BR') : ''));
-
-  box.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">🩺 Diagnóstico de salvamento</div>'
-    + linhas.join('')
-    + '<div id="diag-nuvem" style="padding:5px 0;border-bottom:1px solid #eee;color:#888">🔄 Consultando a nuvem…</div>'
-    + '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
-    + '<button onclick="_salvarLocal();diagSalvamento()" style="background:#1a1a1a;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer">💾 Forçar salvamento e testar</button>'
-    + '<button onclick="syncPush(false).then(function(){diagSalvamento()})" style="background:#2c7;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer">☁️ Enviar para a nuvem agora</button>'
-    + '<button onclick="document.getElementById(\'overlay-diag-salvar\').remove()" style="background:#eee;color:#333;border:0;border-radius:6px;padding:8px 12px;cursor:pointer">Fechar</button>'
-    + '</div>';
-
-  // 7) Consulta a nuvem (assíncrono)
-  try {
-    var base = (configSync.dbUrl||'').replace(/\/$/,'');
-    if(!base) throw new Error('sem URL configurada');
-    var url = base + '/gestcom/dados.json' + (configSync.apiKey ? '?auth='+configSync.apiKey : '');
-    var res = await fetch(url);
-    if(!res.ok) throw new Error('HTTP ' + res.status + (res.status===401?' (permissão negada nas regras do Firebase)':''));
-    var dn = await res.json();
-    var el2 = document.getElementById('diag-nuvem'); if(!el2) return;
-    if(!dn) { el2.innerHTML = '❌ <b>Nuvem:</b> vazia'; return; }
-    var cn = Array.isArray(dn.comissoes_data) ? dn.comissoes_data.filter(function(c){return !c.excluido;}) : [];
-    el2.style.color = '#222';
-    el2.innerHTML = '✅ <b>Cópia na nuvem</b> (' + new Date(dn._ts||0).toLocaleString('pt-BR') + '):<br>'
-      + (dn.pedidos||[]).length + ' pedidos · ' + cn.length + ' comissões · <b>'
-      + cn.filter(function(c){return c.status==='Recebida';}).length + ' Recebida(s)</b> · '
-      + cn.filter(function(c){return c.status==='Parcial';}).length + ' Parcial(is)';
-  } catch(e){
-    var el3 = document.getElementById('diag-nuvem');
-    if(el3){ el3.style.color='#c0392b'; el3.innerHTML = '❌ <b>Nuvem:</b> não foi possível ler — ' + e.message; }
-  }
-}
-
-/* Botão discreto sempre disponível (canto inferior esquerdo) */
-(function(){
-  function criar(){
-    if(document.getElementById('btn-diag-salvar')) return;
-    var b=document.createElement('button');
-    b.id='btn-diag-salvar'; b.textContent='🩺';
-    b.title='Diagnóstico de salvamento';
-    b.onclick=diagSalvamento;
-    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9998;width:34px;height:34px;border-radius:50%;'
-      +'border:0;background:#1a1a1a;color:#fff;font-size:15px;cursor:pointer;opacity:.35;box-shadow:0 2px 6px rgba(0,0,0,.25)';
-    b.onmouseenter=function(){b.style.opacity='1'};
-    b.onmouseleave=function(){b.style.opacity='.35'};
-    document.body.appendChild(b);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',criar); else criar();
-})();
-
-/* Aviso ao fechar a página com salvamento local quebrado */
-window.addEventListener('beforeunload', function(e){
-  if(window._diagSalvar && window._diagSalvar.ok === false){
-    e.preventDefault(); e.returnValue = '';
-  }
-});
-</script>
 </body>
 </html>
