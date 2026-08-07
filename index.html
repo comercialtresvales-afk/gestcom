@@ -4828,6 +4828,7 @@ function _carregarLocal() {
     });
     if(d._tomb && typeof d._tomb==='object') { window._tomb = d._tomb; _podarTombs(); }
     try { _resetSnapshot(); } catch(e) {}
+    try { if(_purgarDemo()) _salvarLocal(); } catch(e) { console.warn('[GestCom] limpeza demo:', e.message); }
     console.info('[GestCom] ✓ Dados locais restaurados (' + new Date(d._ts||0).toLocaleTimeString('pt-BR') + ')');
     return true;
   } catch(e) {
@@ -7426,6 +7427,104 @@ function renderSaldoAtivo() {
 function _saldoMostraZerados() {
   return !!((el('saldo-show-zerados')||{}).checked);
 }
+
+/* ══ v29.4 — ZERAMENTO DE SALDO QUE REALMENTE ZERA ══════════════════════════
+   Antes, "Zerar" só criava a tratativa no histórico: nenhum pedido era tocado
+   e o saldo, que é calculado ao vivo como (total do pedido − valor da NF),
+   continuava exatamente igual na tela.
+   Agora cada pedido envolvido recebe a marca saldoZerado. Nas telas de Saldo
+   ele passa a valer o que foi efetivamente faturado, e a diferença desaparece.
+   A marca é apenas um sinalizador: p.total NÃO é alterado, então faturamento,
+   comissões e relatórios continuam vendo o valor original do pedido. Cancelar
+   a tratativa remove a marca e o saldo volta.                                */
+function _pedZ(p) {
+  if (!p || !p.saldoZerado) return p;
+  const c = Object.assign({}, p);
+  c.total = p.nf ? p.nf.valorNF : 0;
+  return c;
+}
+function _pedsZ(arr) { return (arr || []).map(_pedZ); }
+
+/* ══ LIMPEZA DOS DADOS DE DEMONSTRAÇÃO ══════════════════════════════════════
+   A base carrega um conjunto de exemplo que veio da montagem original: 34
+   pedidos PED-1000..PED-1033, os clientes CLI-001..CLI-006, as indústrias
+   Nestlé/Unilever/Bauducco e as tratativas TRT-01..TRT-03. Eles voltavam
+   sempre que um aparelho com cópia antiga sincronizava. Esta rotina roda ao
+   carregar os dados (do aparelho e da nuvem) e os remove.
+   Só apaga com dupla certeza — padrão de ID E nome de exemplo — de modo que
+   nenhum cadastro real com nome parecido é atingido. Indústria só sai se
+   nenhum pedido restante a estiver usando.                                   */
+var _DEMO_CLI = ['Supermercado Coelho','Atacadão Três Rios','Mercado São Jorge',
+                 'Distribuidora Vale','Empório Central','Casa do Norte'];
+var _DEMO_IND = ['Nestlé','Unilever','Bauducco'];
+
+function _purgarDemo() {
+  if (!Array.isArray(pedidos)) return 0;
+  var n = 0, antes;
+  var ehPedDemo = function(p) {
+    return p && /^PED-1\d{3}$/.test(String(p.id||'')) && _DEMO_CLI.indexOf(p.cliente) >= 0;
+  };
+  var demoIds = {};
+  pedidos.forEach(function(p) { if (ehPedDemo(p)) demoIds[p.id] = 1; });
+
+  antes = pedidos.length;
+  pedidos = pedidos.filter(function(p) { return !ehPedDemo(p); });
+  n += antes - pedidos.length;
+
+  if (Array.isArray(clientes)) {
+    antes = clientes.length;
+    clientes = clientes.filter(function(c) {
+      return !(/^CLI-00[1-6]$/.test(String(c.id||'')) && _DEMO_CLI.indexOf(c.nome) >= 0);
+    });
+    n += antes - clientes.length;
+  }
+  if (Array.isArray(industrias)) {
+    antes = industrias.length;
+    industrias = industrias.filter(function(i) {
+      if (_DEMO_IND.indexOf(i.nome) < 0) return true;
+      return pedidos.some(function(p) { return p.industria === i.nome; });
+    });
+    n += antes - industrias.length;
+  }
+  if (Array.isArray(tratativas)) {
+    antes = tratativas.length;
+    tratativas = tratativas.filter(function(t) { return !/^TRT-\d+$/.test(String(t.id||'')); });
+    n += antes - tratativas.length;
+  }
+
+  var cliVivos = Array.isArray(clientes) ? clientes.map(function(c){return c.nome;}) : [];
+  var indVivas = Array.isArray(industrias) ? industrias.map(function(i){return i.nome;}) : [];
+  var ehRegDemo = function(r) {
+    if (!r || typeof r !== 'object') return false;
+    if (demoIds[r.pedido] || demoIds[r.pedId] || demoIds[r.id]) return true;
+    if (_DEMO_CLI.indexOf(r.cliente) >= 0 && cliVivos.indexOf(r.cliente) < 0) return true;
+    if (_DEMO_IND.indexOf(r.industria) >= 0 && indVivas.indexOf(r.industria) < 0) return true;
+    return false;
+  };
+  [['comissoes_data',   function(v){ comissoes_data=v; },   function(){ return comissoes_data; }],
+   ['logisticaData',    function(v){ logisticaData=v; },    function(){ return logisticaData; }],
+   ['bonificacoesData', function(v){ bonificacoesData=v; }, function(){ return bonificacoesData; }],
+   ['metasData',        function(v){ metasData=v; },        function(){ return metasData; }],
+   ['sellOutData',      function(v){ sellOutData=v; },      function(){ return sellOutData; }],
+   ['ctrlSaldosData',   function(v){ ctrlSaldosData=v; },   function(){ return ctrlSaldosData; }],
+   ['ctrlSaldosHistorico', function(v){ ctrlSaldosHistorico=v; }, function(){ return ctrlSaldosHistorico; }]
+  ].forEach(function(par) {
+    var arr;
+    try { arr = par[2](); } catch(e) { return; }
+    if (!Array.isArray(arr)) return;
+    var a = arr.length;
+    var novo = arr.filter(function(r) { return !ehRegDemo(r); });
+    if (novo.length !== a) { par[1](novo); n += a - novo.length; }
+  });
+  if (Array.isArray(window.saldoUsosData)) {
+    antes = window.saldoUsosData.length;
+    window.saldoUsosData = window.saldoUsosData.filter(function(r) { return !ehRegDemo(r); });
+    n += antes - window.saldoUsosData.length;
+  }
+
+  if (n) console.log('[GestCom] Dados de demonstração removidos: ' + n + ' registro(s)');
+  return n;
+}
 function _getSaldoDadosFiltrados() {
   const filtCli=(el('saldo-cli')||{}).value||'';
   const filtInd=(el('saldo-ind')||{}).value||'';
@@ -7433,13 +7532,13 @@ function _getSaldoDadosFiltrados() {
   const mesesAbrev=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   function _pfx(lbl){if(!lbl)return'';const pts=lbl.split('/');if(pts.length!==2)return'';const mi=mesesAbrev.findIndex(m=>m===pts[0]);if(mi===-1)return'';return(2000+parseInt(pts[1],10))+'-'+String(mi+1).padStart(2,'0');}
   const pfx=_pfx(filtMes);
-  return pedidos.filter(p=>{
+  return _pedsZ(pedidos.filter(p=>{
     if(p.excluido)return false;
     if(filtCli&&p.cliente!==filtCli)return false;
     if(filtInd&&p.industria!==filtInd)return false;
     if(pfx){const dr=(p.nf&&p.nf.data)?p.nf.data:p.data;if(!dr||!dr.startsWith(pfx))return false;}
     return true;
-  });
+  }));
 }
 function renderSaldoAnaliseIndustria(){
   const tbody=el('saldo-ind-tbody');if(!tbody)return;
@@ -7624,7 +7723,7 @@ function renderSaldo() {
 
   div.innerHTML = mesContexto + (nomesClientes.map(cli=>{
     // Aplica filtro de mês nos pedidos do cliente
-    const pedsCli = pedidos.filter(p=>p.cliente===cli && !p.excluido && _pedNoMes(p));
+    const pedsCli = _pedsZ(pedidos.filter(p=>p.cliente===cli && !p.excluido && _pedNoMes(p)));
     if(pedsCli.length===0) return '';
 
     const pedsVenda = pedsCli;
@@ -7768,7 +7867,7 @@ function renderSaldo() {
 ══════════════════════════ */
 
 function zerarSaldoClienteInd(cli, ind) {
-  const pedsInd = pedidos.filter(p=>p.cliente===cli && p.industria===ind && !p.excluido);
+  const pedsInd = _pedsZ(pedidos.filter(p=>p.cliente===cli && p.industria===ind && !p.excluido));
   const totPed  = pedsInd.reduce((s,p)=>s+p.total, 0);
   const totNF   = pedsInd.filter(p=>p.nf).reduce((s,p)=>s+p.nf.valorNF, 0);
   const dif     = totPed - totNF;
@@ -7778,7 +7877,7 @@ function zerarSaldoClienteInd(cli, ind) {
 }
 
 function zerarSaldoCliente(cli) {
-  const pedsCli = pedidos.filter(p=>p.cliente===cli && !p.excluido);
+  const pedsCli = _pedsZ(pedidos.filter(p=>p.cliente===cli && !p.excluido));
   const totPed  = pedsCli.reduce((s,p)=>s+p.total, 0);
   const totNF   = pedsCli.filter(p=>p.nf).reduce((s,p)=>s+p.nf.valorNF, 0);
   const dif     = totPed - totNF;
@@ -7789,8 +7888,9 @@ function zerarSaldoCliente(cli) {
 }
 
 function zerarTodosSaldos() {
-  const totPed = pedidos.filter(p=>!p.excluido).reduce((s,p)=>s+p.total, 0);
-  const totNF  = pedidos.filter(p=>p.nf && !p.excluido).reduce((s,p)=>s+p.nf.valorNF, 0);
+  const _pz    = _pedsZ(pedidos.filter(p=>!p.excluido));
+  const totPed = _pz.reduce((s,p)=>s+p.total, 0);
+  const totNF  = _pz.filter(p=>p.nf).reduce((s,p)=>s+p.nf.valorNF, 0);
   const dif    = totPed - totNF;
   if(Math.abs(dif) < 0.01) { toast('Todos os saldos já estão zerados.'); return; }
   const clis = [...new Set(pedidos.filter(p=>!p.excluido).map(p=>p.cliente))];
@@ -7801,10 +7901,25 @@ function zerarTodosSaldos() {
 
 function _registrarZeramentoSaldo(cli, ind, dif, pedIds) {
   const agora = new Date().toLocaleString('pt-BR').slice(0,14);
+
   const id = 'TRAT-'+String(tratativas.length+1).padStart(3,'0');
+
+  /* Marca de fato os pedidos que carregam a diferença — é isto que faz o
+     saldo sumir da tela, e não apenas o registro no histórico. */
+  const _alvo = new Set(pedIds);
+  const _zerados = pedidos
+    .filter(p => _alvo.has(p.id) && !p.excluido && !p.saldoZerado
+                 && Math.abs(p.total - (p.nf ? p.nf.valorNF : 0)) >= 0.01)
+    .map(p => p.id);
+  const _zSet = new Set(_zerados);
+  if (_zerados.length) {
+    pedidos = pedidos.map(p => _zSet.has(p.id) ? {...p, saldoZerado: true} : p);
+  }
+
   tratativas.push({
     id, tipo: 'zeramento',
     pedido: pedIds.join(', '),
+    pedidosZerados: _zerados,          // usado para desfazer no cancelamento
     nfOriginal: '—',
     cliente: cli, industria: ind,
     valor: Math.abs(dif),
@@ -7812,14 +7927,14 @@ function _registrarZeramentoSaldo(cli, ind, dif, pedIds) {
     tipoErro: '', valorCorrigido: 0, qtdDevolvida: 0, arquivo: '',
     usuario: usuarioLogado?.login||'admin',
     dataHora: agora, status: 'ativa',
-    obs: `Diferença: ${dif>0?'NF menor que pedido':'NF maior que pedido'}`,
+    obs: `Diferença: ${dif>0?'NF menor que pedido':'NF maior que pedido'} · ${_zerados.length} pedido(s) ajustado(s)`,
   });
   addAudit(usuarioLogado?.login||'admin',
-    `Saldo zerado: ${cli} / ${ind} — ajuste de ${fmt(Math.abs(dif))}`, '🔄');
+    `Saldo zerado: ${cli} / ${ind} — ajuste de ${fmt(Math.abs(dif))} em ${_zerados.length} pedido(s)`, '🔄');
   atualizarBadgeTratativas();
-  renderSaldo();
+  renderSaldoAtivo();
   syncAutoSaveHook();
-  toast(`✅ Ajuste de saldo registrado: ${fmt(Math.abs(dif))}`);
+  toast(`✅ Saldo zerado: ${fmt(Math.abs(dif))} em ${_zerados.length} pedido(s)`);
 }
 
 function exportarSaldo(){
@@ -7830,7 +7945,7 @@ function exportarSaldo(){
   const nomesIndustrias=[...new Set([...industrias.map(i=>i.nome),...pedidos.map(p=>p.industria)])].sort();
   nomesClientes.forEach(cli=>{
     nomesIndustrias.forEach(ind=>{
-      const pedsInd=pedidos.filter(p=>p.cliente===cli&&p.industria===ind && !p.excluido);
+      const pedsInd=_pedsZ(pedidos.filter(p=>p.cliente===cli&&p.industria===ind && !p.excluido));
       if(pedsInd.length===0)return;
       const totPed=pedsInd.reduce((s,p)=>s+p.total,0);
       const totFat=pedsInd.filter(p=>p.nf).reduce((s,p)=>s+p.nf.valorNF,0);
@@ -14194,7 +14309,8 @@ function renderTratativas() {
               <button class="btn btn-success btn-xs" onclick="abrirSolucaoTratativa('${t.id}')" title="Marcar como solucionada">✅ Solucionar</button>
               <button class="btn btn-info btn-xs" onclick="abrirAcompTratativa('${t.id}')" title="Adicionar acompanhamento">📝 Nota</button>
               <button class="btn btn-danger btn-xs" onclick="cancelarTratativa('${t.id}')">Cancelar</button>
-            `:(t.status==='solucionada'?`<button class="btn btn-outline btn-xs" onclick="abrirAcompTratativa('${t.id}')" title="Ver acompanhamento">📋 Ver</button>`:'') }
+            `:(t.status==='solucionada'?`<button class="btn btn-outline btn-xs" onclick="abrirAcompTratativa('${t.id}')" title="Ver acompanhamento">📋 Ver</button>
+              <button class="btn btn-danger btn-xs" onclick="cancelarTratativa('${t.id}')" title="Desfazer o impacto e voltar ao estado anterior">↩️ Reverter</button>`:'') }
             ${t.arquivo?`<span class="badge badge-azul" style="cursor:pointer" title="${t.arquivo}">📎 NFD</span>`:''}
           </td>
         </tr>`;
@@ -14205,8 +14321,11 @@ function renderTratativas() {
 
 function cancelarTratativa(id) {
   const t = tratativas.find(x=>x.id===id); if(!t) return;
-  if(t.status!=='ativa'){alert('Esta tratativa não está ativa — apenas tratativas ativas podem ser canceladas.');return;}
-  if(!confirm('Cancelar esta tratativa? O impacto financeiro será revertido.')) return;
+  if(t.status==='cancelada'){alert('Esta tratativa já está cancelada.');return;}
+  const _jaSol = t.status==='solucionada';
+  if(!confirm(_jaSol
+    ? 'Reverter esta tratativa já solucionada? O impacto financeiro voltará ao que era antes dela.'
+    : 'Cancelar esta tratativa? O impacto financeiro será revertido.')) return;
   // Reverter impacto
   const ped = pedidos.find(p=>p.id===t.pedido);
   if(ped&&ped.nf) {
@@ -14243,11 +14362,22 @@ function cancelarTratativa(id) {
     });
     pedidos=pedidos.map(p=>p.id===t.pedido?{...p,novaDataVenc:''}:p);
   }
-  tratativas=tratativas.map(x=>x.id===id?{...x,status:'cancelada'}:x);
-  addAudit(usuarioLogado?.login||'admin',`Tratativa ${id} cancelada`,'🔁');
+  // Reverter zeramento de saldo: devolve a diferença aos pedidos marcados
+  if(t.tipo==='zeramento') {
+    const _ids = Array.isArray(t.pedidosZerados) && t.pedidosZerados.length
+      ? t.pedidosZerados
+      : String(t.pedido||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const _s = new Set(_ids);
+    pedidos = pedidos.map(p=>{
+      if(!_s.has(p.id) || !p.saldoZerado) return p;
+      const c = {...p}; delete c.saldoZerado; return c;
+    });
+  }
+  tratativas=tratativas.map(x=>x.id===id?{...x,status:'cancelada',solucao:'',dataSolucao:''}:x);
+  addAudit(usuarioLogado?.login||'admin',`Tratativa ${id} ${_jaSol?'revertida (estava solucionada)':'cancelada'}`,'🔁');
   syncAutoSaveHook();
   renderTratativas(); renderFaturamento(); renderSaldo(); renderComissoes();
-  toast('Tratativa cancelada e impacto revertido.');
+  toast(_jaSol?'Tratativa revertida — impacto desfeito.':'Tratativa cancelada e impacto revertido.');
 }
 
 function atualizarBadgeTratativas() {
@@ -15019,6 +15149,7 @@ const _loginAtual = usuarioLogado?.login;
     if(_usrAtual && !usuarios.find(u=>u.login===_loginAtual)) usuarios.push(_usrAtual);
   }
   try { _resetSnapshot(); } catch(e) {}
+  try { if(_purgarDemo()) _salvarLocal(); } catch(e) { console.warn('[GestCom] limpeza demo:', e.message); }
   if(!silencioso) {
     ['renderPedidos','renderFaturamento','renderComissoes','renderSaldo','renderLogistica',
      'renderDashboard','renderClientes','renderIndustrias','renderRedes','renderOrcamentos',
